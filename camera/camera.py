@@ -2,7 +2,7 @@ import numpy as np
 from record3d import Record3DStream
 import cv2
 from threading import Event
-from robot.utils import pixel_to_pcd
+from utils.robot_utils import pixel_to_pcd
 import time
 
 class DemoApp:
