@@ -1,15 +1,14 @@
-import os 
-print(os.getcwd())
-
 from robot import HelloRobot
 from camera import DemoApp
 from utils.robot_utils import pixel_to_pcd
+from global_parameters import *
+from args import get_args
+
 import time
 import rospy
 import cv2
 import numpy as np
 import PyKDL
-import argparse
 
 ix, iy = None, None
 def click_event(event, x, y, flags, param):
@@ -61,34 +60,39 @@ def show_image(rgb, depth):
     cv2.destroyAllWindows()
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-bf", "--base_frame",
-                    choices = ["c", "gl", "gr"], default = "c",
-                    help = "Operating frame of reference")
-    parser.add_argument("-t", "--transform", 
-                    action="store_true", 
-                    help = "Boolean for transforming a input co-ordinates to another frame of reference")
-    parser.add_argument("-tn", "--transform_node", 
-                    choices = ["c", "gl", "gr"], default = "gl",
-                    help = "Operating frame of reference")
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("-m", "--mode",
+    #                 choices = ["m, po"], default = "m",
+    #                 help = "Choose the mode of operation."
+    #                         "m  -> moving about a frame of reference to a point"
+    #                         "po -> Picking a object with fixed offset")
+    # parser.add_argument("-bf", "--base_frame",
+    #                 choices = ["c", "gl", "gr"], default = "c",
+    #                 help = "Operating frame of reference")
+    # parser.add_argument("-t", "--transform", 
+    #                 action="store_true", 
+    #                 help = "Boolean for transforming a input co-ordinates to another frame of reference")
+    # parser.add_argument("-tn", "--transform_node", 
+    #                 choices = ["c", "gl", "gr"], default = "gl",
+    #                 help = "Operating frame of reference")
+    # args = parser.parse_args()
 
-    
+    args = get_args()
 
     # Initalize robot and move to a height of 0.86
     if args.base_frame  == "c":
-        base_node = "link_raised_gripper"
+        base_node = CAMERA_NODE
     elif args.base_frame == "gl":
-        base_node = "link_gripper_fingertip_left"
+        base_node = GRIPPER_FINGERTIP_LEFT_NODE
     elif args.base_frame == "gr":
-        base_node = "link_gripper_fingertip_right"
+        base_node = GRIPPER_FINGERTIP_RIGHT_NODE
 
     if args.transform_node == "c":
-        transform_node = "link_raised_gripper"
+        transform_node = CAMERA_NODE
     elif args.transform_node == "gl":
-        transform_node = "link_gripper_fingertip_left"
+        transform_node = GRIPPER_FINGERTIP_LEFT_NODE
     elif args.transform_node == "gr":
-        transform_node = "link_gripper_fingertip_right"
+        transform_node = GRIPPER_FINGERTIP_RIGHT_NODE
     
     hello_robot = HelloRobot(end_link=transform_node)
     hello_robot.move_to_position(lift_pos=0.86, gripper_pos = 0)
