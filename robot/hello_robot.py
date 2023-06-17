@@ -17,7 +17,7 @@ OVERRIDE_STATES = {}
 
 class HelloRobot:
 
-    def __init__(self, urdf_file = 'stretch_nobase_raised.urdf', gripper_threshold = 7.0, stretch_gripper_max = 40, stretch_gripper_min = 0, end_link = "link_raised_gripper"):
+    def __init__(self, urdf_file = 'stretch_nobase_raised.urdf', gripper_threshold = 7.0, stretch_gripper_max = 60, stretch_gripper_min = 0, end_link = "link_raised_gripper"):
         
         self.STRETCH_GRIPPER_MAX = stretch_gripper_max
         self.STRETCH_GRIPPER_MIN = stretch_gripper_min
@@ -66,7 +66,7 @@ class HelloRobot:
         self.robot.end_of_arm.move_to('stretch_gripper',self.CURRENT_STATE)
         self.robot.push_command()
         time.sleep(2)
-        
+
         while self.robot.get_status()['arm']['pos']>arm_pos+0.002 or self.robot.get_status()['arm']['pos']<arm_pos-0.002:
             # print(self.robot.get_status()['arm']['pos'])
             self.robot.arm.move_to(arm_pos)
@@ -82,7 +82,32 @@ class HelloRobot:
         self.robot.base.translate_by(base_trans)
         print('moving to position 3')
         self.robot.push_command()
+        time.sleep(2)
         print('moving to position 4')
+
+    def pickup(self, depth):
+
+        # 0.07 is to correct the little error movement of gripper
+        arm_pos = self.robot.get_status()['arm']['pos'] + 0.27*depth
+        while self.robot.get_status()['arm']['pos']>arm_pos+0.002 or self.robot.get_status()['arm']['pos']<arm_pos-0.002:
+            # print(self.robot.get_status()['arm']['pos'])
+            self.robot.arm.move_to(arm_pos)
+            self.robot.push_command()
+            time.sleep(2) 
+
+        # closing the gripper and picking up
+        # print(self.robot.get_status())
+        # gripper_pos = self.robot.get_status()['stretch_gripper']['pos'] - 15
+        self.robot.end_of_arm.move_to('stretch_gripper', 10)
+        self.robot.push_command()
+        time.sleep(2)
+
+        # move up
+        lift_pos = self.robot.get_status()['lift']['pos'] + 0.1
+        self.robot.lift.move_to(lift_pos)
+        self.robot.push_command()
+        time.sleep(2)
+         
 
     def initialize_home_params(self, home_lift = 0.43, home_arm = 0.02, home_base = 0.0, home_wrist_yaw = 0.0, home_wrist_pitch = 0.0, home_wrist_roll = 0.0, home_gripper = 1):
         self.home_lift = home_lift
@@ -146,8 +171,8 @@ class HelloRobot:
         self.joints['joint_wrist_roll'] = self.robot.end_of_arm.status['wrist_roll']['pos']
         self.joints['joint_wrist_pitch'] = OVERRIDE_STATES.get('wrist_pitch', self.robot.end_of_arm.status['wrist_pitch']['pos'])
 
-        self.joints['joint_stretch_gripper'] = self.robot.end_of_arm.status['stretch_gripper']['pos']  
-        # self.joints['joint_stretch_gripper'] = -0.6  
+        # self.joints['joint_stretch_gripper'] = self.robot.end_of_arm.status['stretch_gripper']['pos']  
+        self.joints['joint_stretch_gripper'] = 0
         # print("gripper pos - ", self.robot.end_of_arm.status['stretch_gripper']['pos'])
 
     # following function is used to move the robot to a desired joint configuration 
@@ -226,7 +251,7 @@ class HelloRobot:
         for joint_index in range(joint_array2.rows()):
             joint_array2[joint_index] = self.joints[self.joint_list[joint_index]]
             # print(joint_array2[joint_index])
-        # joint_array2[joint_array2.rows() - 1] = joint_array2[joint_array2.rows() - 1]/2
+        joint_array2[joint_array2.rows() - 1] = joint_array2[joint_array2.rows() - 1]/2
 
         # Intializing frames for corresponding to nodes
         frame1 = PyKDL.Frame()
@@ -301,6 +326,7 @@ class HelloRobot:
         self.move_to_joints(ik_joints, gripper)
         
         self.robot.push_command()
+        time.sleep(2)
 
         self.updateJoints()
         for joint_index in range(self.joint_array.rows()):
