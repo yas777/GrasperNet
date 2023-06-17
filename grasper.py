@@ -38,18 +38,19 @@ def show_image(rgb, depth):
     cv2.resizeWindow("RGB Image", width, height)
     cv2.resizeWindow("Depth Image", width, height)
     while(1):
-        rotateted_rgb = cv2.rotate(rgb, cv2.ROTATE_90_CLOCKWISE)
-        cv2.imshow("RGB Image", rotateted_rgb)
-        cv2.imshow("Depth Image", depth)
+        rotated_rgb = cv2.rotate(rgb, cv2.ROTATE_90_CLOCKWISE)
+        rotated_depth = cv2.rotate(depth, cv2.ROTATE_90_CLOCKWISE)
+        cv2.imshow("RGB Image", rotated_rgb)
+        cv2.imshow("Depth Image", rotated_depth)
         # cv2.waitKey(1000)
         
         if ix is not None and iy is not None:
-            cv2.line(rotateted_rgb, (ix-25, iy-25), (ix + 25, iy + 25), (0, 0, 255), 2)
-            cv2.line(rotateted_rgb, (ix-25, iy+25), (ix + 25, iy - 25), (0, 0, 255), 2)
+            cv2.line(rotated_rgb, (ix-25, iy-25), (ix + 25, iy + 25), (0, 0, 255), 2)
+            cv2.line(rotated_rgb, (ix-25, iy+25), (ix + 25, iy - 25), (0, 0, 255), 2)
             tiy = iy
             iy = width - ix
             ix = tiy
-            cv2.imshow("RGB Image", rotateted_rgb)
+            cv2.imshow("RGB Image", rotated_rgb)
             cv2.waitKey(3000)
             break
             # cv2.imwrite("./images/crossed_rgb.png", rgb)
@@ -60,42 +61,30 @@ def show_image(rgb, depth):
     cv2.destroyAllWindows()
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("-m", "--mode",
-    #                 choices = ["m, po"], default = "m",
-    #                 help = "Choose the mode of operation."
-    #                         "m  -> moving about a frame of reference to a point"
-    #                         "po -> Picking a object with fixed offset")
-    # parser.add_argument("-bf", "--base_frame",
-    #                 choices = ["c", "gl", "gr"], default = "c",
-    #                 help = "Operating frame of reference")
-    # parser.add_argument("-t", "--transform", 
-    #                 action="store_true", 
-    #                 help = "Boolean for transforming a input co-ordinates to another frame of reference")
-    # parser.add_argument("-tn", "--transform_node", 
-    #                 choices = ["c", "gl", "gr"], default = "gl",
-    #                 help = "Operating frame of reference")
-    # args = parser.parse_args()
-
     args = get_args()
 
     # Initalize robot and move to a height of 0.86
-    if args.base_frame  == "c":
+    if args.base_frame  == "gc":
         base_node = CAMERA_NODE
-    elif args.base_frame == "gl":
-        base_node = GRIPPER_FINGERTIP_LEFT_NODE
-    elif args.base_frame == "gr":
-        base_node = GRIPPER_FINGERTIP_RIGHT_NODE
+    elif args.base_frame == "tc":
+        base_node = TOP_CAMERA_NODE
 
-    if args.transform_node == "c":
-        transform_node = CAMERA_NODE
-    elif args.transform_node == "gl":
+    if args.transform_node == "gl":
         transform_node = GRIPPER_FINGERTIP_LEFT_NODE
     elif args.transform_node == "gr":
         transform_node = GRIPPER_FINGERTIP_RIGHT_NODE
     
-    hello_robot = HelloRobot(end_link=transform_node)
-    hello_robot.move_to_position(lift_pos=0.86, gripper_pos = 0)
+    if (args.transform):
+        hello_robot = HelloRobot(end_link=transform_node)
+    else:
+        hello_robot = HelloRobot(end_link=base_node)
+    
+    if args.mode == "m":
+        gripper_pos = 0
+    else:
+        gripper_pos = 1
+    
+    hello_robot.move_to_position(lift_pos=0.86, gripper_pos = gripper_pos)
 
     # # Intialize Camera
     app = DemoApp()
@@ -107,16 +96,18 @@ if __name__ == '__main__':
     # # process image
     rgb, depth, intrinsic_mat = app.start_process_image()
     resized_depth = upscale_depth(rgb, depth)
-    print(np.asarray(resized_depth).shape[:2])
+    # print(np.asarray(resized_depth).shape[:2])
     show_image(rgb, resized_depth)
     
 
     # pixel to pcd converison
     print(ix, iy, args.transform)
+    # ix, iy = 1, 2
     if (ix is not None) and (iy is not None):
         x, y, z = pixel_to_pcd(ix, iy, resized_depth, intrinsic_mat)
         point = PyKDL.Vector(x, y, z)
-        # point = PyKDL.Vector(0, 0, -0.3)
+        print(z)
+        # point = PyKDL.Vector(0, 0, 0.3)
         
         # transform for converting point in camera co-ordiantes to gripper finger tip co-ordiantes
         if args.transform and transform_node is not None:
@@ -130,6 +121,8 @@ if __name__ == '__main__':
         hello_robot.move_to_pose(
             [transformed_point.x(), transformed_point.y(), transformed_point.z()],
             [0, 0, 0],  
-            [0]
+            [gripper_pos]
         )
-
+        
+        if (args.mode == "pi"):
+            hello_robot.pickup(abs(z))
