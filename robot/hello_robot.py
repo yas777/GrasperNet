@@ -10,7 +10,8 @@ import time
 import random
 import os
 from utils.robot_utils import euler_to_quat, urdf_joint_to_kdl_joint, urdf_pose_to_kdl_frame, urdf_inertial_to_kdl_rbi, kdl_tree_from_urdf_model
-
+from global_parameters import *
+import global_parameters
 
 
 OVERRIDE_STATES = {}
@@ -28,7 +29,8 @@ class HelloRobot:
 
         #Initializing ROS node
         print("hello robot starting")
-        self.joint_list = ["joint_fake","joint_lift","joint_arm_l3","joint_arm_l2","joint_arm_l1" ,"joint_arm_l0","joint_wrist_yaw","joint_wrist_pitch","joint_wrist_roll", "joint_stretch_gripper"]
+        self.head_joint_list = ["joint_fake", "joint_head_pan", "joint_head_tilt"]
+        self.joint_list = ["joint_fake","joint_lift","joint_arm_l3","joint_arm_l2","joint_arm_l1" ,"joint_arm_l0","joint_wrist_yaw","joint_wrist_pitch","joint_wrist_roll", "joint_finger_left"]
         try:
             rospy.init_node('hello_robot_node')
         except:
@@ -86,7 +88,8 @@ class HelloRobot:
         print('moving to position 4')
 
     def pickup(self, depth):
-
+        
+        time.sleep(3)
         # 0.07 is to correct the little error movement of gripper
         arm_pos = self.robot.get_status()['arm']['pos'] + 0.27*depth
         while self.robot.get_status()['arm']['pos']>arm_pos+0.002 or self.robot.get_status()['arm']['pos']<arm_pos-0.002:
@@ -124,6 +127,7 @@ class HelloRobot:
 
     def setup_kdl(self):
         self.joints = {'joint_fake':0}
+        self.head_joints = {'joint_fake':0}
         
         robot_model = URDF.from_xml_file(self.urdf_path)
         self.kdl_tree = kdl_tree_from_urdf_model(robot_model)
@@ -171,9 +175,14 @@ class HelloRobot:
         self.joints['joint_wrist_roll'] = self.robot.end_of_arm.status['wrist_roll']['pos']
         self.joints['joint_wrist_pitch'] = OVERRIDE_STATES.get('wrist_pitch', self.robot.end_of_arm.status['wrist_pitch']['pos'])
 
-        # self.joints['joint_stretch_gripper'] = self.robot.end_of_arm.status['stretch_gripper']['pos']  
-        self.joints['joint_stretch_gripper'] = 0
+        # self.joints['joint_finger_left'] = self.robot.end_of_arm.status['stretch_gripper']['pos'] * (0.6/3.4) 
+        self.joints['joint_finger_left'] = 0
         # print("gripper pos - ", self.robot.end_of_arm.status['stretch_gripper']['pos'])
+
+        # Head Joints
+        self.head_joints['joint_fake'] = origin_dist
+        self.head_joints['joint_head_pan'] = self.robot.head.status['head_pan']['pos']
+        self.head_joints['joint_head_tilt'] = self.robot.head.status['head_tilt']['pos']
 
     # following function is used to move the robot to a desired joint configuration 
     def move_to_joints(self, joints, gripper):
@@ -188,16 +197,20 @@ class HelloRobot:
         # print('base motion:', self.base_motion)
 
         self.robot.base.translate_by(joints['joint_fake']-self.joints['joint_fake'], 5)
+        self.robot.lift.move_to(joints['joint_lift'])
+        self.robot.push_command()
+        time.sleep(2)
+        
         self.robot.arm.move_to(joints['joint_arm_l3'] + 
                             joints['joint_arm_l2'] + 
                             joints['joint_arm_l1'] + 
                             joints['joint_arm_l0'])
         
-        self.robot.lift.move_to(joints['joint_lift'])
+        
         
         #yaw, pitch, roll limits 
         self.robot.end_of_arm.move_to('wrist_yaw', self.clamp(joints['joint_wrist_yaw'], -0.4, 1.7))
-        self.robot.end_of_arm.move_to('wrist_pitch', self.clamp(joints['joint_wrist_pitch'], -0.8, 0.2))
+        self.robot.end_of_arm.move_to('wrist_pitch', self.clamp(joints['joint_wrist_pitch'], -1.57, 0.2))
         #NOTE: belwo code is to fix the pitch drift issue in current hello-robot. Remove it if there is no pitch drift issue
         OVERRIDE_STATES['wrist_pitch'] = joints['joint_wrist_pitch']
         self.robot.end_of_arm.move_to('wrist_roll', self.clamp(joints['joint_wrist_roll'], -1.53, 1.53))
@@ -243,15 +256,23 @@ class HelloRobot:
         # caluculating current robot joint positions in self.joints
         self.updateJoints()
 
+        if node1 == TOP_CAMERA_NODE:
+            ref_joints1 = self.head_joints
+            ref_joint1_list = self.head_joint_list
+        else:
+            ref_joints1 = self.joints
+            ref_joint1_list = self.joint_list
+
+            
         # Updating the joint arrays from self.joints
         for joint_index in range(joint_array1.rows()):
-            joint_array1[joint_index] = self.joints[self.joint_list[joint_index]]
-            # print(joint_array1[joint_index])
+            joint_array1[joint_index] = ref_joints1[ref_joint1_list[joint_index]]
+            # print(f"{ref_joint1_list[joint_index]} - {joint_array1[joint_index]}")
 
         for joint_index in range(joint_array2.rows()):
             joint_array2[joint_index] = self.joints[self.joint_list[joint_index]]
-            # print(joint_array2[joint_index])
-        joint_array2[joint_array2.rows() - 1] = joint_array2[joint_array2.rows() - 1]/2
+            # print(f"{self.joint_list[joint_index]} - {joint_array2[joint_index]}")
+        # joint_array2[joint_array2.rows() - 1] = joint_array2[joint_array2.rows() - 1]/2
 
         # Intializing frames for corresponding to nodes
         frame1 = PyKDL.Frame()
@@ -286,6 +307,9 @@ class HelloRobot:
 
         for joint_index in range(self.joint_array.rows()):
             self.joint_array[joint_index] = self.joints[self.joint_list[joint_index]]
+            # print(f"{joint_index} - {self.joint_array[joint_index]}")
+        
+        print("\n\n")
 
         curr_pose = PyKDL.Frame()
         del_pose = PyKDL.Frame()
@@ -304,8 +328,21 @@ class HelloRobot:
         del_pose.M = del_rot
         del_pose.p = del_trans
         goal_pose_new = curr_pose*del_pose
+        # print("cur pose - ", curr_pose )
+        # print("del_pose - ", del_pose)
+        # print("goal pose - ", goal_pose_new)
+
+        # correction in final x, y, z postions
+        print(f"corrections - {CORRECTION_X, CORRECTION_Y, CORRECTION_Z}")
+        # print(f"corrections - {CORRECTION_X, global_parameters.CORRECTION_Y, CORRECTION_Z}")
+        goal_pose_new.p[0] = goal_pose_new.p[0] + CORRECTION_X
+        goal_pose_new.p[1] = goal_pose_new.p[1] + global_parameters.CORRECTION_Y
+        goal_pose_new.p[2] = goal_pose_new.p[2] + global_parameters.CORRECTION_Z
+        # print("goal pose - ", goal_pose_new)        
 
         seed_array = PyKDL.JntArray(self.arm_chain.getNrOfJoints())
+        # seed_array[self.arm_chain.getNrOfJoints()-1] = self.joint_array[self.arm_chain.getNrOfJoints() - 1]
+        # print("seed array - ", seed_array)
         self.ik_p_kdl.CartToJnt(seed_array, goal_pose_new, self.joint_array)
 
         ik_joints = {}
@@ -314,6 +351,7 @@ class HelloRobot:
             # print(joint_index)
             # print(joint_list[joint_index])
             ik_joints[self.joint_list[joint_index]] = self.joint_array[joint_index]
+        # print("ik joints - ", ik_joints)
 
 
         # print('ik_joints', ik_joints)
@@ -331,6 +369,7 @@ class HelloRobot:
         self.updateJoints()
         for joint_index in range(self.joint_array.rows()):
             self.joint_array[joint_index] = self.joints[self.joint_list[joint_index]]
+            # print(f"{joint_index} - {self.joint_array[joint_index]}")
         
 
 
