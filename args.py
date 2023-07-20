@@ -1,4 +1,5 @@
 import argparse
+import yaml
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -7,6 +8,10 @@ def get_args():
                     help = "Choose the mode of operation."
                             "m  -> moving about a frame of reference to a point"
                             "po -> Picking a object with fixed offset")
+    parser.add_argument("-o1", "--picking_object", 
+                    help = "picking object")
+    parser.add_argument("-o2", "--placing_object", 
+                    help = "placing object")
     parser.add_argument("-bf", "--base_frame",
                     choices = ["gripper_camera", "top_camera", "gripper_left", "gripper_right"], default = "gripper_camera",
                     help = "Operating frame of reference")
@@ -17,5 +22,8 @@ def get_args():
                     choices = ["gripper_camera", "top_camera", "gripper_left", "gripper_right"],
                     default = "gripper_left",
                     help = "Operating frame of reference")
+
     
+    # with open("config.yaml", "r") as conf:
+    #     return yaml.load(conf)
     return parser.parse_args()

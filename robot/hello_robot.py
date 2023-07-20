@@ -11,6 +11,7 @@ import random
 import os
 from utils.robot_utils import euler_to_quat, urdf_joint_to_kdl_joint, urdf_pose_to_kdl_frame, urdf_inertial_to_kdl_rbi, kdl_tree_from_urdf_model
 from global_parameters import *
+import global_parameters
 
 
 OVERRIDE_STATES = {}
@@ -176,7 +177,7 @@ class HelloRobot:
 
         # self.joints['joint_finger_left'] = self.robot.end_of_arm.status['stretch_gripper']['pos'] * (0.6/3.4) 
         self.joints['joint_finger_left'] = 0
-        print("gripper pos - ", self.robot.end_of_arm.status['stretch_gripper']['pos'])
+        # print("gripper pos - ", self.robot.end_of_arm.status['stretch_gripper']['pos'])
 
         # Head Joints
         self.head_joints['joint_fake'] = origin_dist
@@ -266,11 +267,11 @@ class HelloRobot:
         # Updating the joint arrays from self.joints
         for joint_index in range(joint_array1.rows()):
             joint_array1[joint_index] = ref_joints1[ref_joint1_list[joint_index]]
-            print(f"{ref_joint1_list[joint_index]} - {joint_array1[joint_index]}")
+            # print(f"{ref_joint1_list[joint_index]} - {joint_array1[joint_index]}")
 
         for joint_index in range(joint_array2.rows()):
             joint_array2[joint_index] = self.joints[self.joint_list[joint_index]]
-            print(f"{self.joint_list[joint_index]} - {joint_array2[joint_index]}")
+            # print(f"{self.joint_list[joint_index]} - {joint_array2[joint_index]}")
         # joint_array2[joint_array2.rows() - 1] = joint_array2[joint_array2.rows() - 1]/2
 
         # Intializing frames for corresponding to nodes
@@ -306,7 +307,7 @@ class HelloRobot:
 
         for joint_index in range(self.joint_array.rows()):
             self.joint_array[joint_index] = self.joints[self.joint_list[joint_index]]
-            print(f"{joint_index} - {self.joint_array[joint_index]}")
+            # print(f"{joint_index} - {self.joint_array[joint_index]}")
         
         print("\n\n")
 
@@ -327,19 +328,21 @@ class HelloRobot:
         del_pose.M = del_rot
         del_pose.p = del_trans
         goal_pose_new = curr_pose*del_pose
-        print("cur pose - ", curr_pose )
-        print("del_pose - ", del_pose)
-        print("goal pose - ", goal_pose_new)
+        # print("cur pose - ", curr_pose )
+        # print("del_pose - ", del_pose)
+        # print("goal pose - ", goal_pose_new)
 
         # correction in final x, y, z postions
+        print(f"corrections - {CORRECTION_X, CORRECTION_Y, CORRECTION_Z}")
+        # print(f"corrections - {CORRECTION_X, global_parameters.CORRECTION_Y, CORRECTION_Z}")
         goal_pose_new.p[0] = goal_pose_new.p[0] + CORRECTION_X
-        goal_pose_new.p[1] = goal_pose_new.p[1] + CORRECTION_Y
-        goal_pose_new.p[2] = goal_pose_new.p[2] + CORRECTION_Z
-        print("goal pose - ", goal_pose_new)        
+        goal_pose_new.p[1] = goal_pose_new.p[1] + global_parameters.CORRECTION_Y
+        goal_pose_new.p[2] = goal_pose_new.p[2] + global_parameters.CORRECTION_Z
+        # print("goal pose - ", goal_pose_new)        
 
         seed_array = PyKDL.JntArray(self.arm_chain.getNrOfJoints())
         # seed_array[self.arm_chain.getNrOfJoints()-1] = self.joint_array[self.arm_chain.getNrOfJoints() - 1]
-        print("seed array - ", seed_array)
+        # print("seed array - ", seed_array)
         self.ik_p_kdl.CartToJnt(seed_array, goal_pose_new, self.joint_array)
 
         ik_joints = {}
@@ -348,7 +351,7 @@ class HelloRobot:
             # print(joint_index)
             # print(joint_list[joint_index])
             ik_joints[self.joint_list[joint_index]] = self.joint_array[joint_index]
-        print("ik joints - ", ik_joints)
+        # print("ik joints - ", ik_joints)
 
 
         # print('ik_joints', ik_joints)
@@ -366,7 +369,7 @@ class HelloRobot:
         self.updateJoints()
         for joint_index in range(self.joint_array.rows()):
             self.joint_array[joint_index] = self.joints[self.joint_list[joint_index]]
-            print(f"{joint_index} - {self.joint_array[joint_index]}")
+            # print(f"{joint_index} - {self.joint_array[joint_index]}")
         
 
 

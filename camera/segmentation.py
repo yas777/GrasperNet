@@ -5,7 +5,6 @@
 # print(sys.path)
 
 from segment_anything import sam_model_registry, SamPredictor
-from utils.seg_utils import visualize_masks
 from global_parameters import SAM_CHECKPOINT, SAM_MODEL_TYPE
 
 import cv2
