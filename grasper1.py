@@ -115,41 +115,21 @@ if __name__ == "__main__":
         rotation = PyKDL.Rotation(1, 0, 0, 0, 1, 0, 0, 0, 1)
 
     if args.mode == "pick":
-        # point = PyKDL.Vector(0.04464857, 0.02098933, 0.75800002)
-        point = PyKDL.Vector(-0.23317847, 0.28965002, 0.80186498)
-
-        # rotation1 = PyKDL.Rotation(2.39388689e-01, -9.55172122e-01, -1.74181908e-01, 
-        #                             -4.23444882e-02,  1.68956459e-01, -9.84713495e-01,
-        #                             9.70000029e-01,  2.43104920e-01, -1.06264535e-08)
+        point = PyKDL.Vector(0.14819528, 0.12937662, 0.72112405)
         
-        # rotation1 = PyKDL.Rotation(-3.11710656e-01,  8.86093080e-01,  3.43038589e-01,
-        #                             1.13836229e-01, -3.23599726e-01,  9.39321280e-01, 
-        #                             9.43333328e-01,  3.31846684e-01, -1.45054795e-08)
-        
-        # rotation1 = PyKDL.Rotation(0.07559296, -0.96571505, -0.24835478, 
-        #                              0.28120205, 0.25960431, -0.9238674,
-        #                               0.95666665, 0, 0.29118532)
+        # Rotation from model frame to pose frame
+        rotation1 = PyKDL.Rotation(-0.15578863,  0.61516678, -0.77285171,
+                                    -0.33291125,  0.70393169,  0.62741554,
+                                    0.93000001,  0.35503522,  0.09513136)
 
-        # rotation1 = PyKDL.Rotation(0.02277477, -0.9989326,  -0.04018656,
-        #                             0.49252543,  0.04619145, -0.86907136,
-        #                             0.87,        0,          0.49305171)
-
-        rotation1 = PyKDL.Rotation(-0.11492483,  0.99317348, -0.01996705,
-                                    0.36639848,  0.06106357,  0.92845213,
-                                    0.92333335,  0.09938631, -0.370915  )
-        rotation1_top = PyKDL.Rotation(-0.0000000, -1.0000000,  0.0000000,
-                                    -1.0000000,  0.0000000,  0.0000000, 
-                                    0.0000000,  0.0000000, -1.0000000)
+        # Rotation from camera frame to model frame
         rotation1_bottom = PyKDL.Rotation(0.0000000, -1.0000000,  0.0000000,
                                     -1.0000000,  0.0000000,  0.0000000, 
                                     0.0000000,  0.0000000, 1.0000000)
-        rotation2_top = PyKDL.Rotation(-1, 0, 0, 0, 0, 1, 0, 1, 0)
-        # rotation = PyKDL.Rotation(0.96571505,   -0.07559296, -0.24835478, 
-        #                         -0.25960431,    -0.28120205, -0.9238674,
-        #                         -0,             -0.95666665, 0.29118532)
         print(f"Points frame rotation - {rotation1.GetRPY()}, {rotation1.GetEulerZYX()}")
         print(rotation1)
-        # rotation = PyKDL.Rotation.RPY(rotation.GetRPY()[1], rotation.GetRPY()[0], rotation.GetRPY()[2]-1.53)
+
+        # Rotation from camera frame to pose frame
         rotation =  rotation1_bottom * rotation1
         print(rotation)
         print(f"Camera frame rotation - {rotation.GetRPY()}, {rotation.GetEulerZYX()}")
@@ -158,12 +138,15 @@ if __name__ == "__main__":
     
     # Camera frame to gripper frame transformation
     if args.transform and transform_node is not None:
+
+        # transform - Rotation and translation from camera frame to gripper frame
         transform, frame2, frame1 = hello_robot.get_joint_transform(base_node, transform_node)
+
+        # Rotation from gripper frame frame to gripper frame
         transformed_frame = transform * dest_frame
 
         if transform_node == GRIPPER_MID_NODE and args.mode == "move":
             transformed_frame.p[2] -= 0.22
-
     else:
         transformed_point = point
     
@@ -178,9 +161,14 @@ if __name__ == "__main__":
             [gripper_pos]
         )
     elif args.mode == "pick":
+
+        # Rotation for aligning gripper frame to model pose frame
         rotation2_top = PyKDL.Rotation(0, 0, 1, 1, 0, 0, 0, -1, 0)
         
+        # final Rotation of gripper to hold the objet
         final_rotation = transformed_frame.M * rotation2_top
+
+        # Only rotating the gripper 
         hello_robot.move_to_pose(
             [0, 0, 0],
             [final_rotation.GetRPY()[0], final_rotation.GetRPY()[1], final_rotation.GetRPY()[2]],
@@ -188,12 +176,14 @@ if __name__ == "__main__":
         )
         time.sleep(4)
 
+        # Calculating new co-rodinates of pose center
         if args.transform and transform_node is not None:
             transform, frame2, frame1 = hello_robot.get_joint_transform(base_node, transform_node)
             transformed_point1 = transform * point
 
             transformed_point1[2] -= 0.185
         
+        # Moving gripper to pose center
         hello_robot.move_to_pose(
             [transformed_point1.x(), transformed_point1.y(), transformed_point1.z()],
             [0, 0, 0],
@@ -205,95 +195,3 @@ if __name__ == "__main__":
         # Picking the object
         if (args.mode == "pick"):
             hello_robot.pickup(abs(0))
-        
-    exit()
-
-    # exit()
-    # print(point, transformed_point, transformed_point)
-    # print(rotation.GetRPY())
-    
-    # Moving robot to a desired point
-
-    # hello_robot.move_to_position(
-    #     wrist_pitch = 0,
-    #     wrist_roll = 0,
-    #     wrist_yaw = 0
-    # )
-
-    # time.sleep(5) 
-
-    
-
-    
-    rotation3_top = PyKDL.Rotation(0.7660444, -0.6427876,  0.0000000, 0.6427876,  0.7660444,  0.0000000, 0.0000000,  0.0000000,  1.0000000)
-    rotation2_bottom = PyKDL.Rotation(0, -1, 0, -1, 0, 0, 0, 0, 1)
-
-    # final_rotation =   rotation2_top * transformed_frame.M
-    final_rotation = transformed_frame.M * rotation2_top
-    print(f"final gripper rotation - {final_rotation.GetRPY()}, {final_rotation.GetRPY()}")
-    print(final_rotation)
-    hello_robot.move_to_pose(
-        # [transformed_point.x(), transformed_point.y(), transformed_point.z()+0.03],
-        [0, 0, 0],
-        # [0, 1, 0],
-        # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
-        # [0, 0, 0],
-        [final_rotation.GetRPY()[0], final_rotation.GetRPY()[1], final_rotation.GetRPY()[2]],
-        # [transformed_frame.M.GetRPY()[0], transformed_frame.M.GetRPY()[1], transformed_frame.M.GetRPY()[2]],
-        [gripper_pos],
-    )
-
-    time.sleep(4)
-
-    # hello_robot.move_to_pose(
-    #     # [transformed_point.x(), transformed_point.y(), transformed_point.z()+0.03],
-    #     [0, 0, 0],
-    #     # [0, 1, 0],
-    #     # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
-    #     # [0, 0, 0],
-    #     [0, 0, 1.53],
-    #     # [transformed_frame.M.GetRPY()[0], transformed_frame.M.GetRPY()[1], transformed_frame.M.GetRPY()[2]],
-    #     [gripper_pos]
-    # )
-
-    # exit()
-    
-
-    # hello_robot.move_to_pose(
-    #     # [transformed_point.x(), transformed_point.y(), transformed_point.z()+0.03],
-    #     [0, 0, 0],
-    #     # [0, 1, 0],
-    #     # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
-    #     [-transformed_frame.M.GetRPY()[1], -transformed_frame.M.GetRPY()[0], -transformed_frame.M.GetRPY()[2]],
-    #     # [-transformed_frame.M.GetRPY()[1], -transformed_frame.M.GetRPY()[0], transformed_frame.M.GetRPY()[2]+1.53],
-    #     [gripper_pos]
-    # )
-
-    # time.sleep(5)
-
-    if args.transform and transform_node is not None:
-        transform, frame2, frame1 = hello_robot.get_joint_transform(base_node, transform_node)
-        transformed_point1 = transform * point
-
-        transformed_point1[2] -= 0.185
-
-    # origin = PyKDL.Vector(0, 0, 0)
-    # transformed_frame1 = PyKDL.Frame(rotation, origin)
-    # transformed_point1 = transformed_frame1.Inverse() * transformed_point
-    print(transformed_point1)
-
-    hello_robot.move_to_pose(
-        [transformed_point1.x(), transformed_point1.y(), transformed_point1.z()],
-        [0, 0, 0],
-        # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
-        [gripper_pos]
-    )
-    
-    # Picking the object
-    if (args.mode == "pick"):
-        hello_robot.pickup(abs(0))
-
-    # pub_proc.terminate()
-    # pub_proc.join()
-    # final_rel_pos = PyKDL.Vector(0.5, 0, 0)
-    # hello_robot.move_to_pose(final_rel_pos, [0,0,0], [0.5])
