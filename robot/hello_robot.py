@@ -23,7 +23,7 @@ OVERRIDE_STATES = {}
 
 class HelloRobot:
 
-    def __init__(self, urdf_file = 'stretch_nobase_raised.urdf', gripper_threshold = 7.0, stretch_gripper_max = 60, stretch_gripper_min = 0, end_link = "link_raised_gripper"):
+    def __init__(self, urdf_file = 'stretch.urdf', gripper_threshold = 7.0, stretch_gripper_max = 60, stretch_gripper_min = 0, end_link = "link_raised_gripper"):
         
         self.STRETCH_GRIPPER_MAX = stretch_gripper_max
         self.STRETCH_GRIPPER_MIN = stretch_gripper_min
@@ -110,7 +110,7 @@ class HelloRobot:
         self.ik_p_kdl = PyKDL.ChainIkSolverPos_NR(self.arm_chain, self.fk_p_kdl, self.ik_v_kdl) 
     
 
-    def move_to_position(self, lift_pos = None, arm_pos = None, base_trans = 0.0, wrist_yaw = None, wrist_pitch = None, wrist_roll = None, gripper_pos = None):
+    def move_to_position(self, lift_pos = None, arm_pos = None, base_trans = 0.0, wrist_yaw = None, wrist_pitch = None, wrist_roll = None, gripper_pos = None, head_tilt = -0.45, head_pan = -1.53):
 
         if gripper_pos != None:
             self.CURRENT_STATE = self.STRETCH_GRIPPER_MAX if gripper_pos is None \
@@ -143,6 +143,9 @@ class HelloRobot:
             self.robot.push_command()
             time.sleep(2)
             print('moving to position 4')
+        
+        self.robot.head.move_to("head_tilt", head_tilt)
+        self.robot.head.move_to("head_pan", head_pan)
 
     def pickup(self, depth):
         
@@ -237,11 +240,17 @@ class HelloRobot:
         
         
         #yaw, pitch, roll limits 
-        self.robot.end_of_arm.move_to('wrist_yaw', self.clamp(joints['joint_wrist_yaw'], -0.4, 1.7))
-        self.robot.end_of_arm.move_to('wrist_pitch', self.clamp(joints['joint_wrist_pitch'], -1.57, 0.2))
+        # self.robot.end_of_arm.move_to('wrist_yaw', self.clamp(joints['joint_wrist_yaw'], -0.4, 1.7))
+        # self.robot.end_of_arm.move_to('wrist_pitch', self.clamp(joints['joint_wrist_pitch'], -1.57, 0.2))
+        # self.robot.end_of_arm.move_to('wrist_roll', self.clamp(joints['joint_wrist_roll'], -1.53, 1.53))
+        print(f"joints - {joints['joint_wrist_yaw']}, {joints['joint_wrist_pitch']}, {joints['joint_wrist_roll']}")
+        self.robot.end_of_arm.move_to('wrist_yaw', joints['joint_wrist_yaw'])
+        self.robot.end_of_arm.move_to('wrist_pitch', joints['joint_wrist_pitch'])
+        self.robot.end_of_arm.move_to('wrist_roll', joints['joint_wrist_roll'])
+
         #NOTE: belwo code is to fix the pitch drift issue in current hello-robot. Remove it if there is no pitch drift issue
         OVERRIDE_STATES['wrist_pitch'] = joints['joint_wrist_pitch']
-        self.robot.end_of_arm.move_to('wrist_roll', self.clamp(joints['joint_wrist_roll'], -1.53, 1.53))
+        
 
         # gripper[0] value ranges from 0 to 1, 0 being closed and 1 being open. Below code maps the gripper value to the range of the gripper joint
         self.CURRENT_STATE  = gripper[0]*(self.STRETCH_GRIPPER_MAX-self.STRETCH_GRIPPER_MIN) + self.STRETCH_GRIPPER_MIN
@@ -352,6 +361,7 @@ class HelloRobot:
         del_rot = PyKDL.Rotation(PyKDL.Vector(rot_matrix[0][0], rot_matrix[1][0], rot_matrix[2][0]),
                                   PyKDL.Vector(rot_matrix[0][1], rot_matrix[1][1], rot_matrix[2][1]),
                                   PyKDL.Vector(rot_matrix[0][2], rot_matrix[1][2], rot_matrix[2][2]))
+        # del_rot = rotation_matrix
         del_trans = PyKDL.Vector(translation[0], translation[1], translation[2])
         del_pose.M = del_rot
         del_pose.p = del_trans

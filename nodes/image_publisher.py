@@ -47,8 +47,8 @@ class ImagePublisher():
         rotated_image = np.rot90(image, k=-1)
         rotated_depth = np.rot90(depth, k=-1)
 
-        PILImage.fromarray(rotated_image).save("./images/test_rgb9.png")
-        PILImage.fromarray(rotated_depth).save("./images/test_depth9.png")
+        PILImage.fromarray(rotated_image).save("./images/peiqi_test_rgb1.png")
+        PILImage.fromarray(rotated_depth).save("./images/peiqi_test_depth1.png")
         # np.save("./images/test_rgb.npy", rotated_image)
         # np.save("./images/test_depth.npy", rotated_depth)
 
@@ -58,5 +58,5 @@ class ImagePublisher():
             print(e)
         
         depth_data = convert_numpy_array_to_float32_multi_array(rotated_depth)
-        print(image_message.shape)
-        print(depth_data.shape)
+        # print(image_message.shape)
+        # print(depth_data.shape)
