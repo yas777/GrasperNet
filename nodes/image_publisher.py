@@ -1,4 +1,5 @@
-import rospy
+#import rospy
+import zmq
 import numpy as np
 from PIL import Image as PILImage
 
@@ -10,25 +11,43 @@ from std_msgs.msg import Float32MultiArray,MultiArrayDimension
 IMAGE_PUBLISHER_NAME = '/gopro_image'
 DEPTH_PUBLISHER_NAME = '/gopro_depth'
 
-def convert_numpy_array_to_float32_multi_array(matrix):
+# use zmq to send a numpy array
+def send_array(socket, A, flags=0, copy=True, track=False):
+    """send a numpy array with metadata"""
+    md = dict(
+        dtype = str(A.dtype),
+        shape = A.shape,
+    )
+    socket.send_json(md, flags|zmq.SNDMORE)
+    return socket.send(np.ascontiguousarray(A), flags, copy=copy, track=track)
+
+# use zmq to receive a numpy array
+def recv_array(socket, flags=0, copy=True, track=False):
+    """recv a numpy array"""
+    md = socket.recv_json(flags=flags)
+    msg = socket.recv(flags=flags, copy=copy, track=track)
+    A = np.frombuffer(msg, dtype=md['dtype'])
+    return A.reshape(md['shape'])
+
+#def convert_numpy_array_to_float32_multi_array(matrix):
 	# Create a Float64MultiArray object
-    data_to_send = Float32MultiArray()
+#    data_to_send = Float32MultiArray()
 
     # Set the layout parameters
-    data_to_send.layout.dim.append(MultiArrayDimension())
-    data_to_send.layout.dim[0].label = "rows"
-    data_to_send.layout.dim[0].size = len(matrix)
-    data_to_send.layout.dim[0].stride = len(matrix) * len(matrix[0])
+#    data_to_send.layout.dim.append(MultiArrayDimension())
+#    data_to_send.layout.dim[0].label = "rows"
+#    data_to_send.layout.dim[0].size = len(matrix)
+#    data_to_send.layout.dim[0].stride = len(matrix) * len(matrix[0])
 
-    data_to_send.layout.dim.append(MultiArrayDimension())
-    data_to_send.layout.dim[1].label = "columns"
-    data_to_send.layout.dim[1].size = len(matrix[0])
-    data_to_send.layout.dim[1].stride = len(matrix[0])
+#    data_to_send.layout.dim.append(MultiArrayDimension())
+#    data_to_send.layout.dim[1].label = "columns"
+#    data_to_send.layout.dim[1].size = len(matrix[0])
+#    data_to_send.layout.dim[1].stride = len(matrix[0])
 
     # Flatten the matrix into a list
-    data_to_send.data = matrix.flatten().tolist()
+#    data_to_send.data = matrix.flatten().tolist()
 
-    return data_to_send
+#    return data_to_send
 
 class ImagePublisher():
 
@@ -37,8 +56,13 @@ class ImagePublisher():
         self.camera = camera
 
         self.bridge = CvBridge()
-        self.image_publisher = rospy.Publisher(IMAGE_PUBLISHER_NAME, Image, queue_size = 1)
-        self.depth_publisher = rospy.Publisher(DEPTH_PUBLISHER_NAME, Float32MultiArray, queue_size = 1)
+        context = zmq.Context()
+        self.socket = context.socket(zmq.REQ)
+        self.socket.connect("tcp://172.24.71.253:5555")
+        #self.image_publisher = rospy.Publisher(IMAGE_PUBLISHER_NAME, Image, queue_size = 1)
+        #self.depth_publisher = rospy.Publisher(DEPTH_PUBLISHER_NAME, Float32MultiArray, queue_size = 1)
+        #self.image = None
+        #self.depth = None
 
     def publish_image(self):
 
@@ -46,17 +70,19 @@ class ImagePublisher():
 
         rotated_image = np.rot90(image, k=-1)
         rotated_depth = np.rot90(depth, k=-1)
-
-        PILImage.fromarray(rotated_image).save("./images/peiqi_test_rgb1.png")
-        PILImage.fromarray(rotated_depth).save("./images/peiqi_test_depth1.png")
-        # np.save("./images/test_rgb.npy", rotated_image)
-        # np.save("./images/test_depth.npy", rotated_depth)
-
-        try:
-            image_message = self.bridge.cv2_to_imgmsg(rotated_image, "bgr8")
-        except CvBridgeError as e:
-            print(e)
-        
-        depth_data = convert_numpy_array_to_float32_multi_array(rotated_depth)
-        # print(image_message.shape)
-        # print(depth_data.shape)
+        PILImage.fromarray(rotated_image).save("./images/peiqi_test_rgb17.png")
+        PILImage.fromarray(rotated_depth).save("./images/peiqi_test_depth17.png")
+        send_array(self.socket, rotated_image)
+        print(self.socket.recv_string())
+        send_array(self.socket, rotated_depth)
+        print(self.socket.recv_string())
+        self.socket.send_string("Waiting for tranlation and rotation")
+        translation = recv_array(self.socket)
+        self.socket.send_string("translation received")
+        rotation = recv_array(self.socket)
+        self.socket.send_string("rotation received")
+        print("translation: ")
+        print(translation)
+        print("rotation: ")
+        print(rotation)
+        return translation, rotation

@@ -61,7 +61,7 @@ if __name__ == "__main__":
     else:
         gripper_pos = 0
 
-    if args.mode == "capture":
+    if args.mode == "capture" or args.mode == "pick":
         global_parameters.INIT_WRIST_PITCH = -1.57
 
     # Joint state publisher
@@ -79,18 +79,18 @@ if __name__ == "__main__":
                                 wrist_roll = INIT_WRIST_ROLL,
                                 wrist_yaw = INIT_WRIST_YAW,
                                 gripper_pos = gripper_pos)
-    time.sleep(4)
+    time.sleep(1)
 
     hello_robot.move_to_position(lift_pos=INIT_LIFT_POS,
                                 wrist_pitch = global_parameters.INIT_WRIST_PITCH,
                                 wrist_roll = INIT_WRIST_ROLL,
                                 wrist_yaw = INIT_WRIST_YAW)
 
-    time.sleep(2)
+    time.sleep(1)
 
     # Intialsiing Camera
-    if args.mode == "move" or args.mode == "capture":
-        camera = RealSenseCamera()
+    #if args.mode == "move" or args.mode == "capture":
+    camera = RealSenseCamera()
 
     if args.mode == "capture":
         image_publisher = ImagePublisher(camera)
@@ -115,12 +115,14 @@ if __name__ == "__main__":
         rotation = PyKDL.Rotation(1, 0, 0, 0, 1, 0, 0, 0, 1)
 
     if args.mode == "pick":
-        point = PyKDL.Vector(0.14819528, 0.12937662, 0.72112405)
+        image_publisher = ImagePublisher(camera)
+        translation, rotation = image_publisher.publish_image()
+        point = PyKDL.Vector(-translation[1], -translation[0], translation[2])
         
         # Rotation from model frame to pose frame
-        rotation1 = PyKDL.Rotation(-0.15578863,  0.61516678, -0.77285171,
-                                    -0.33291125,  0.70393169,  0.62741554,
-                                    0.93000001,  0.35503522,  0.09513136)
+        rotation1 = PyKDL.Rotation(rotation[0][0], rotation[0][1], rotation[0][2],
+                                   rotation[1][0],  rotation[1][1], rotation[1][2],
+                                    rotation[2][0],  rotation[2][1], rotation[2][2])
 
         # Rotation from camera frame to model frame
         rotation1_bottom = PyKDL.Rotation(0.0000000, -1.0000000,  0.0000000,
@@ -195,3 +197,7 @@ if __name__ == "__main__":
         # Picking the object
         if (args.mode == "pick"):
             hello_robot.pickup(abs(0))
+            # Put it down for now
+            time.sleep(3)
+            hello_robot.move_to_position(gripper_pos = 1)
+            hello_robot.move_to_position(arm_pos = INIT_ARM_POS)
