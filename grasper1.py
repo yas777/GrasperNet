@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
     if args.mode == "pick":
         image_publisher = ImagePublisher(camera)
-        translation, rotation = image_publisher.publish_image()
+        translation, rotation, depth = image_publisher.publish_image()
         point = PyKDL.Vector(-translation[1], -translation[0], translation[2])
         
         # Rotation from model frame to pose frame
@@ -183,7 +183,7 @@ if __name__ == "__main__":
             transform, frame2, frame1 = hello_robot.get_joint_transform(base_node, transform_node)
             transformed_point1 = transform * point
 
-            transformed_point1[2] -= 0.185
+            transformed_point1[2] -= (0.215 - depth)
         
         # Moving gripper to pose center
         hello_robot.move_to_pose(
@@ -192,12 +192,12 @@ if __name__ == "__main__":
             # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
             [gripper_pos]
         )
-        time.sleep(3)
+        # time.sleep(3)
 
         # Picking the object
-        if (args.mode == "pick"):
-            hello_robot.pickup(abs(0))
-            # Put it down for now
-            time.sleep(3)
-            hello_robot.move_to_position(gripper_pos = 1)
-            hello_robot.move_to_position(arm_pos = INIT_ARM_POS)
+        # if (args.mode == "pick"):
+        hello_robot.pickup(abs(0))
+        # Put it down for now
+        time.sleep(3)
+        hello_robot.move_to_position(gripper_pos = 1)
+        hello_robot.move_to_position(arm_pos = INIT_ARM_POS)

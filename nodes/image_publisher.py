@@ -70,8 +70,8 @@ class ImagePublisher():
 
         rotated_image = np.rot90(image, k=-1)
         rotated_depth = np.rot90(depth, k=-1)
-        PILImage.fromarray(rotated_image).save("./images/peiqi_test_rgb17.png")
-        PILImage.fromarray(rotated_depth).save("./images/peiqi_test_depth17.png")
+        PILImage.fromarray(rotated_image).save("./images/peiqi_test_rgb21.png")
+        PILImage.fromarray(rotated_depth).save("./images/peiqi_test_depth21.png")
         send_array(self.socket, rotated_image)
         print(self.socket.recv_string())
         send_array(self.socket, rotated_depth)
@@ -81,8 +81,11 @@ class ImagePublisher():
         self.socket.send_string("translation received")
         rotation = recv_array(self.socket)
         self.socket.send_string("rotation received")
+        depth = recv_array(self.socket)[0]
+        print(f"depth received - {depth}")
+        self.socket.send_string(f"depth received")
         print("translation: ")
         print(translation)
         print("rotation: ")
         print(rotation)
-        return translation, rotation
+        return translation, rotation, depth

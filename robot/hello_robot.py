@@ -149,7 +149,7 @@ class HelloRobot:
 
     def pickup(self, depth):
         
-        time.sleep(3)
+        time.sleep(5)
         # 0.07 is to correct the little error movement of gripper
         arm_pos = self.robot.get_status()['arm']['pos'] + 0.27*depth
         while self.robot.get_status()['arm']['pos']>arm_pos+0.002 or self.robot.get_status()['arm']['pos']<arm_pos-0.002:
