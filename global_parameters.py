@@ -4,6 +4,7 @@ TOP_CAMERA_NODE = "camera_depth_optical_frame"
 GRIPPER_FINGERTIP_LEFT_NODE = "link_gripper_fingertip_left"
 GRIPPER_FINGER_LEFT_NODE = "link_gripper_finger_left"
 GRIPPER_MID_NODE = "link_straight_gripper"
+# GRIPPER_MID_NODE = "link_grasp_center"
 GRIPPER_FINGERTIP_RIGHT_NODE = "link_gripper_fingertip_right"
 
 INIT_LIFT_POS = 0.7 #

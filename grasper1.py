@@ -5,7 +5,7 @@ from global_parameters import *
 import global_parameters
 from args import get_args
 from camera import RealSenseCamera
-from segment import segment_image
+#from segment import segment_image
 from utils import potrait_to_landscape, segment_point_cloud, plane_detection, display_image_and_point
 from nodes import JointStatePublisher, Listener, ImagePublisher
 
@@ -74,6 +74,7 @@ if __name__ == "__main__":
         print('node already initialized hello_robot')
 
     # Moving robot to intital position
+    print(INIT_ARM_POS, INIT_WRIST_PITCH, INIT_WRIST_ROLL, INIT_WRIST_YAW, gripper_pos)
     hello_robot.move_to_position(arm_pos=INIT_ARM_POS,
                                 wrist_pitch = INIT_WRIST_PITCH,
                                 wrist_roll = INIT_WRIST_ROLL,
@@ -90,7 +91,8 @@ if __name__ == "__main__":
 
     # Intialsiing Camera
     #if args.mode == "move" or args.mode == "capture":
-    camera = RealSenseCamera()
+    #camera = RealSenseCamera()
+    camera = RealSenseCamera(hello_robot.robot)
 
     if args.mode == "capture":
         image_publisher = ImagePublisher(camera)
@@ -110,6 +112,7 @@ if __name__ == "__main__":
         # Image to world co-ordinates conversion
         sx, sy, sz = camera.pixel2d_to_point3d(ix, iy)
         point = PyKDL.Vector(sx, -sy, sz)
+        #point = PyKDL.Vector(-sy, sx, sz)
         print(f"x - {sx}, y - {sy}, z - {sz}")
 
         rotation = PyKDL.Rotation(1, 0, 0, 0, 1, 0, 0, 0, 1)
@@ -144,11 +147,12 @@ if __name__ == "__main__":
         # transform - Rotation and translation from camera frame to gripper frame
         transform, frame2, frame1 = hello_robot.get_joint_transform(base_node, transform_node)
 
+        print('dest_frame', dest_frame.p)
         # Rotation from gripper frame frame to gripper frame
         transformed_frame = transform * dest_frame
 
         if transform_node == GRIPPER_MID_NODE and args.mode == "move":
-            transformed_frame.p[2] -= 0.22
+            transformed_frame.p[2] -= 0.2
     else:
         transformed_point = point
     
@@ -183,17 +187,43 @@ if __name__ == "__main__":
             transform, frame2, frame1 = hello_robot.get_joint_transform(base_node, transform_node)
             transformed_point1 = transform * point
 
-            transformed_point1[2] -= (0.215 - depth)
+            transformed_point1[2] -= (0.195 - depth)
         
+        # print()
         # Moving gripper to pose center
         hello_robot.move_to_pose(
-            [transformed_point1.x(), transformed_point1.y(), transformed_point1.z()],
+            [transformed_point1.x(), transformed_point1.y(), transformed_point1.z() - 0.2],
             [0, 0, 0],
             # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
             [gripper_pos]
         )
-        # time.sleep(3)
-
+        # exit()
+        # hello_robot.move_to_pose(
+        #     [0, 0, 0.05],
+        #     [0, 0, 0],
+        #     # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
+        #     [gripper_pos]
+        # )
+        hello_robot.move_to_pose(
+            [0, 0, 0.18],
+            [0, 0, 0],
+            # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
+            [gripper_pos],
+            1
+        )
+        # hello_robot.move_to_pose(
+        #     [0, 0, 0.05],
+        #     [0, 0, 0],
+        #     # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
+        #     [gripper_pos],
+        #     1
+        # )
+        hello_robot.move_to_pose(
+            [0, 0, 0.02],
+            [0, 0, 0],
+            # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
+            [gripper_pos]
+        )
         # Picking the object
         # if (args.mode == "pick"):
         hello_robot.pickup(abs(0))
