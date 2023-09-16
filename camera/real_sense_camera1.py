@@ -105,7 +105,7 @@ class RealSenseCamera:
             self.depth_image = np.asanyarray(aligned_depth_frame.get_data())
             # print(depth_image.max())
             self.rgb_image = np.asanyarray(color_frame.get_data())
-            self.points = np.asanyarray(self.pc.calculate(aligned_depth_frame).get_vertices()).view(np.float32).reshape(240, 424 ,3)
+            self.points = np.asanyarray(self.pc.calculate(aligned_depth_frame).get_vertices()).view(np.float32).reshape(424, 240, 3)
 
             print(self.points.shape)
 
