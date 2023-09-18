@@ -23,7 +23,7 @@ OVERRIDE_STATES = {}
 
 class HelloRobot:
 
-    def __init__(self, urdf_file = 'stretch3.urdf', gripper_threshold = 7.0, stretch_gripper_max = 60, stretch_gripper_min = 0, end_link = "link_raised_gripper"):
+    def __init__(self, urdf_file = 'stretch.urdf', gripper_threshold = 7.0, stretch_gripper_max = 60, stretch_gripper_min = 0, end_link = "link_raised_gripper"):
         
         self.STRETCH_GRIPPER_MAX = stretch_gripper_max
         self.STRETCH_GRIPPER_MIN = stretch_gripper_min

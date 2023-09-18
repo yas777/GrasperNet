@@ -24,10 +24,10 @@ class RealSenseCamera:
 
         # Camera intrinsics
         intrinsics = self.robot.dpt_cam.K 
-        self.fx = intrinsics[0, 0]
-        self.fy = intrinsics[1, 1]
-        self.cx = intrinsics[0, 2]
-        self.cy = intrinsics[1, 2]
+        self.fy = intrinsics[0, 0]
+        self.fx = intrinsics[1, 1]
+        self.cy = intrinsics[0, 2]
+        self.cx = intrinsics[1, 2]
         print(self.fx, self.fy, self.cx, self.cy)
 
         # selected ix and iy co-ordinates
@@ -67,14 +67,14 @@ class RealSenseCamera:
         return self.rgb_image, self.depth_image, self.points
 
     def pixel2d_to_point3d(self, ix, iy):
-        #d = self.depth_image[iy, ix]
-        #print(d)
-        #z = d
-        #x = (ix - self.cx)*(abs(z))/self.fx
-        #y = -(iy - self.cy)*(abs(z))/self.fy
+        d = self.depth_image[iy, ix]
+        print(d)
+        z = d
+        x = (ix - self.cx)*(abs(z))/self.fx
+        y = -(iy - self.cy)*(abs(z))/self.fy
 
-        #return x, y, z
-        return self.points[iy, ix][[1, 0, 2]]
+        return x, y, z
+        #return self.points[iy, ix][[1, 0, 2]]
 
     def click_event(self, event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:

@@ -121,6 +121,7 @@ if __name__ == "__main__":
         image_publisher = ImagePublisher(camera)
         translation, rotation, depth = image_publisher.publish_image()
         point = PyKDL.Vector(-translation[1], -translation[0], translation[2])
+        #point = PyKDL.Vector(translation[1], -translation[0], translation[2])
         
         # Rotation from model frame to pose frame
         rotation1 = PyKDL.Rotation(rotation[0][0], rotation[0][1], rotation[0][2],
@@ -204,13 +205,14 @@ if __name__ == "__main__":
         #     # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
         #     [gripper_pos]
         # )
+        print("1\n\n\n\n\n\n\n\n\n\n\n")
         hello_robot.move_to_pose(
             [0, 0, 0.18],
             [0, 0, 0],
             # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
-            [gripper_pos],
-            1
+            [gripper_pos]
         )
+        print("2\n\n\n\n\n\n\n\n\n\n\n")
         # hello_robot.move_to_pose(
         #     [0, 0, 0.05],
         #     [0, 0, 0],
@@ -224,6 +226,7 @@ if __name__ == "__main__":
             # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
             [gripper_pos]
         )
+        print("3\n\n\n\n\n\n\n\n\n\n\n")
         # Picking the object
         # if (args.mode == "pick"):
         hello_robot.pickup(abs(0))

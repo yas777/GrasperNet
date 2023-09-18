@@ -41,12 +41,14 @@ class RealSenseCamera:
             print("The demo requires Depth camera with Color sensor")
             exit(0)
 
-        config.enable_stream(rs.stream.depth, 424, 240, rs.format.z16, 30)
+        #config.enable_stream(rs.stream.depth, 424, 240, rs.format.z16, 30)
+        config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
 
         if device_product_line == 'L500':
             config.enable_stream(rs.stream.color, 960, 540, rs.format.bgr8, 30)
         else:
-            config.enable_stream(rs.stream.color, 424, 240, rs.format.bgr8, 30)
+            #config.enable_stream(rs.stream.color, 424, 240, rs.format.bgr8, 30)
+            config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
         # Start streaming
         profile = self.pipeline.start(config)
@@ -105,7 +107,8 @@ class RealSenseCamera:
             self.depth_image = np.asanyarray(aligned_depth_frame.get_data())
             # print(depth_image.max())
             self.rgb_image = np.asanyarray(color_frame.get_data())
-            self.points = np.asanyarray(self.pc.calculate(aligned_depth_frame).get_vertices()).view(np.float32).reshape(424, 240, 3)
+            #self.points = np.asanyarray(self.pc.calculate(aligned_depth_frame).get_vertices()).view(np.float32).reshape(424, 240, 3)
+            self.points = np.asanyarray(self.pc.calculate(aligned_depth_frame).get_vertices()).view(np.float32).reshape(640, 480, 3)
 
             print(self.points.shape)
 
