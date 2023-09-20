@@ -38,7 +38,7 @@ class HelloRobot:
         #Initializing ROS node
         print("hello robot starting")
         self.head_joint_list = ["joint_fake", "joint_head_pan", "joint_head_tilt"]
-        self.init_joint_list = ["joint_fake","joint_lift","joint_arm_l3","joint_arm_l2","joint_arm_l1" ,"joint_arm_l0","joint_wrist_yaw","joint_wrist_pitch","joint_wrist_roll", "joint_gripper_finger_left"]
+        self.init_joint_list = ["joint_fake","joint_lift","3","2","1" ,"0","joint_wrist_yaw","joint_wrist_pitch","joint_wrist_roll", "joint_gripper_finger_left"]
 
         # end_link is the frame of reference node 
         # Ex: link_raised_gripper -> camera frame of reference and
@@ -180,6 +180,8 @@ class HelloRobot:
         xyt = self.robot.nav.get_base_pose()
         origin_dist = math.sqrt((self.base_y - xyt[1])**2+(self.base_x - xyt[0])**2)
 
+        print(f"init, final co-ordinates - {self.base_x, self.base_y, xyt[0], xyt[1]}")
+
         # print('orig_dist:', origin_dist)
         # far_dist = math.sqrt((self.far_y - self.robot.base.status['y'])**2+(self.far_x - self.robot.base.status['x'])**2)
 
@@ -198,13 +200,14 @@ class HelloRobot:
 
         state = self.robot.manip.get_joint_positions()
         
+        print(f"xyt, origin_dist, state - {xyt}, {origin_dist}, {state}")
         self.joints['joint_lift'] = state[1]
         
         armPos = state[2]
-        self.joints['joint_arm_l3'] = armPos / 4.0
-        self.joints['joint_arm_l2'] = armPos / 4.0
-        self.joints['joint_arm_l1'] = armPos / 4.0
-        self.joints['joint_arm_l0'] = armPos / 4.0
+        self.joints['3'] = armPos / 4.0
+        self.joints['2'] = armPos / 4.0
+        self.joints['1'] = armPos / 4.0
+        self.joints['0'] = armPos / 4.0
         
         self.joints['joint_wrist_yaw'] = state[3]
         self.joints['joint_wrist_roll'] = state[5]
@@ -243,10 +246,10 @@ class HelloRobot:
         target_state = [
             joints['joint_fake'], 
             joints['joint_lift'],
-            joints['joint_arm_l3'] + 
-            joints['joint_arm_l2'] + 
-            joints['joint_arm_l1'] + 
-            joints['joint_arm_l0'],
+            joints['3'] + 
+            joints['2'] + 
+            joints['1'] + 
+            joints['0'],
             joints['joint_wrist_yaw'],
             joints['joint_wrist_pitch'],
             joints['joint_wrist_roll']]
@@ -308,6 +311,10 @@ class HelloRobot:
             ref_joints1 = self.joints
             ref_joint1_list = self.joint_list
 
+        print("hello")
+        print(ref_joints1, ref_joint1_list)
+        print("hello again")
+        print(self.joints, self.joint_list)
             
         # Updating the joint arrays from self.joints
         for joint_index in range(joint_array1.rows()):
@@ -315,6 +322,7 @@ class HelloRobot:
             # print(f"{ref_joint1_list[joint_index]} - {joint_array1[joint_index]}")
 
         for joint_index in range(joint_array2.rows()):
+            print(joint_index, self.joint_list[joint_index], self.joints[self.joint_list[joint_index]])
             joint_array2[joint_index] = self.joints[self.joint_list[joint_index]]
             # print(f"{self.joint_list[joint_index]} - {joint_array2[joint_index]}")
         # joint_array2[joint_array2.rows() - 1] = joint_array2[joint_array2.rows() - 1]/2
@@ -338,6 +346,8 @@ class HelloRobot:
         
         # This allows to transform a point in frame1 to frame2
         frame_transform = frame2.Inverse() * frame1
+        transform1 = self.robot._ros_client.get_frame_pose(node1, node2)
+        transform2 = self.robot._ros_client.get_frame_pose(node2, node1)
 
         return frame_transform, frame2, frame1
     

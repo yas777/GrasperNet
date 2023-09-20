@@ -68,7 +68,7 @@ class RealSenseCamera:
 
     def pixel2d_to_point3d(self, ix, iy):
         d = self.depth_image[iy, ix]
-        print(d)
+        print(d, ix, iy, self.cx, self.cy, self.fx, self.fy)
         z = d
         x = (ix - self.cx)*(abs(z))/self.fx
         y = -(iy - self.cy)*(abs(z))/self.fy

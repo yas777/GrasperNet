@@ -74,6 +74,8 @@ if __name__ == "__main__":
         print('node already initialized hello_robot')
 
     # Moving robot to intital position
+    camera = RealSenseCamera(hello_robot.robot)
+
     print(INIT_ARM_POS, INIT_WRIST_PITCH, INIT_WRIST_ROLL, INIT_WRIST_YAW, gripper_pos)
     hello_robot.move_to_position(arm_pos=INIT_ARM_POS,
                                 wrist_pitch = INIT_WRIST_PITCH,
@@ -92,7 +94,6 @@ if __name__ == "__main__":
     # Intialsiing Camera
     #if args.mode == "move" or args.mode == "capture":
     #camera = RealSenseCamera()
-    camera = RealSenseCamera(hello_robot.robot)
 
     if args.mode == "capture":
         image_publisher = ImagePublisher(camera)
@@ -157,9 +158,10 @@ if __name__ == "__main__":
     else:
         transformed_point = point
     
-    print(transformed_frame.p)
-    print(transformed_frame.M.GetRPY())
+    print("pose: ", transformed_frame.p)
+    print("rotation: ", transformed_frame.M.GetRPY())
 
+    #exit()
     if args.mode == "move":
         hello_robot.move_to_pose(
             [transformed_frame.p[0], transformed_frame.p[1], transformed_frame.p[2]],
@@ -181,7 +183,7 @@ if __name__ == "__main__":
             [final_rotation.GetRPY()[0], final_rotation.GetRPY()[1], final_rotation.GetRPY()[2]],
             [gripper_pos],
         )
-        time.sleep(4)
+        time.sleep(1)
 
         # Calculating new co-rodinates of pose center
         if args.transform and transform_node is not None:
