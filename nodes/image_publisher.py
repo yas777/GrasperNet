@@ -58,13 +58,13 @@ class ImagePublisher():
         self.bridge = CvBridge()
         context = zmq.Context()
         self.socket = context.socket(zmq.REQ)
-        self.socket.connect("tcp://172.24.71.253:5555")
+        self.socket.connect("tcp://172.24.71.253:5556")
         #self.image_publisher = rospy.Publisher(IMAGE_PUBLISHER_NAME, Image, queue_size = 1)
         #self.depth_publisher = rospy.Publisher(DEPTH_PUBLISHER_NAME, Float32MultiArray, queue_size = 1)
         #self.image = None
         #self.depth = None
 
-    def publish_image(self):
+    def publish_image(self, A):
 
         image, depth, points = self.camera.capture_image()
 
@@ -79,7 +79,7 @@ class ImagePublisher():
         print(self.socket.recv_string()) 
         #send_array(self.socket, rotated_point)
         #print(self.socket.recv_string()) 
-        send_array(self.socket, np.array([self.camera.fy, self.camera.fx, self.camera.cy, self.camera.cx]))
+        send_array(self.socket, np.array([self.camera.fy, self.camera.fx, 480 - self.camera.cy, self.camera.cx]))
         print(self.socket.recv_string())
         self.socket.send_string("Waiting for gripper pose")
         translation = recv_array(self.socket)

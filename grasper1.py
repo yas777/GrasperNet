@@ -74,7 +74,6 @@ if __name__ == "__main__":
         print('node already initialized hello_robot')
 
     # Moving robot to intital position
-    camera = RealSenseCamera(hello_robot.robot)
 
     print(INIT_ARM_POS, INIT_WRIST_PITCH, INIT_WRIST_ROLL, INIT_WRIST_YAW, gripper_pos)
     hello_robot.move_to_position(arm_pos=INIT_ARM_POS,
@@ -83,21 +82,21 @@ if __name__ == "__main__":
                                 wrist_yaw = INIT_WRIST_YAW,
                                 gripper_pos = gripper_pos)
     time.sleep(1)
-
+    
     hello_robot.move_to_position(lift_pos=INIT_LIFT_POS,
                                 wrist_pitch = global_parameters.INIT_WRIST_PITCH,
                                 wrist_roll = INIT_WRIST_ROLL,
                                 wrist_yaw = INIT_WRIST_YAW)
 
     time.sleep(1)
-
     # Intialsiing Camera
     #if args.mode == "move" or args.mode == "capture":
     #camera = RealSenseCamera()
 
+    camera = RealSenseCamera(hello_robot.robot)
     if args.mode == "capture":
         image_publisher = ImagePublisher(camera)
-        image_publisher.publish_image()
+        image_publisher.publish_image("apple")
         exit()
 
     # point selector
@@ -120,7 +119,7 @@ if __name__ == "__main__":
 
     if args.mode == "pick":
         image_publisher = ImagePublisher(camera)
-        translation, rotation, depth = image_publisher.publish_image()
+        translation, rotation, depth = image_publisher.publish_image('apple')
         point = PyKDL.Vector(-translation[1], -translation[0], translation[2])
         #point = PyKDL.Vector(translation[1], -translation[0], translation[2])
         
@@ -183,7 +182,7 @@ if __name__ == "__main__":
             [final_rotation.GetRPY()[0], final_rotation.GetRPY()[1], final_rotation.GetRPY()[2]],
             [gripper_pos],
         )
-        time.sleep(1)
+        # time.sleep(1)
 
         # Calculating new co-rodinates of pose center
         if args.transform and transform_node is not None:
@@ -198,7 +197,8 @@ if __name__ == "__main__":
             [transformed_point1.x(), transformed_point1.y(), transformed_point1.z() - 0.2],
             [0, 0, 0],
             # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
-            [gripper_pos]
+            [gripper_pos],
+            move_mode = 0
         )
         # exit()
         # hello_robot.move_to_pose(
@@ -207,14 +207,16 @@ if __name__ == "__main__":
         #     # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
         #     [gripper_pos]
         # )
-        print("1\n\n\n\n\n\n\n\n\n\n\n")
+        print(hello_robot.robot._ros_client.get_joint_state()[0])
+        print("\n\n\n\n\n\n\n\n\n\n\n")
         hello_robot.move_to_pose(
-            [0, 0, 0.18],
-            [0, 0, 0],
-            # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
+             [0, 0, 0.18],
+             [0, 0, 0],
+             # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
             [gripper_pos]
         )
-        print("2\n\n\n\n\n\n\n\n\n\n\n")
+        print(hello_robot.robot._ros_client.get_joint_state()[0])
+        print("\n\n\n\n\n\n\n\n\n\n\n")
         # hello_robot.move_to_pose(
         #     [0, 0, 0.05],
         #     [0, 0, 0],
@@ -228,7 +230,8 @@ if __name__ == "__main__":
             # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
             [gripper_pos]
         )
-        print("3\n\n\n\n\n\n\n\n\n\n\n")
+        print(hello_robot.robot._ros_client.get_joint_state()[0])
+        print("\n\n\n\n\n\n\n\n\n\n\n")
         # Picking the object
         # if (args.mode == "pick"):
         hello_robot.pickup(abs(0))

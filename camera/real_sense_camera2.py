@@ -67,14 +67,14 @@ class RealSenseCamera:
         return self.rgb_image, self.depth_image, self.points
 
     def pixel2d_to_point3d(self, ix, iy):
-        d = self.depth_image[iy, ix]
-        print(d, ix, iy, self.cx, self.cy, self.fx, self.fy)
-        z = d
-        x = (ix - self.cx)*(abs(z))/self.fx
-        y = -(iy - self.cy)*(abs(z))/self.fy
+        # d = self.depth_image[iy, ix]
+        # print(d, ix, iy, self.cx, self.cy, self.fx, self.fy)
+        # z = d
+        # x = (ix - self.cx)*(abs(z))/self.fx
+        # y = -(iy - self.cy)*(abs(z))/self.fy
 
-        return x, y, z
-        #return self.points[iy, ix][[1, 0, 2]]
+        # return x, y, z
+        return self.points[iy, ix][[1, 0, 2]]
 
     def click_event(self, event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
