@@ -58,31 +58,40 @@ class ImagePublisher():
         self.bridge = CvBridge()
         context = zmq.Context()
         self.socket = context.socket(zmq.REQ)
-        self.socket.connect("tcp://172.24.71.253:5556")
+        self.socket.connect("tcp://172.24.71.253:5555")
         #self.image_publisher = rospy.Publisher(IMAGE_PUBLISHER_NAME, Image, queue_size = 1)
         #self.depth_publisher = rospy.Publisher(DEPTH_PUBLISHER_NAME, Float32MultiArray, queue_size = 1)
         #self.image = None
         #self.depth = None
 
     def publish_image(self, A):
+        flag = True
+        while flag:
+            image, depth, points = self.camera.capture_image()
 
-        image, depth, points = self.camera.capture_image()
+            rotated_image = np.rot90(image, k=-1)
+            rotated_depth = np.rot90(depth, k=-1)
+            rotated_point = np.rot90(points, k=-1)
+            PILImage.fromarray(rotated_image).save("./images/peiqi_test_rgb21.png")
+            #PILImage.fromarray(rotated_depth).save("./images/peiqi_test_depth21.png")
+            send_array(self.socket, rotated_image)
+            print(self.socket.recv_string())
+            send_array(self.socket, rotated_depth)
+            print(self.socket.recv_string()) 
+            #send_array(self.socket, rotated_point)
+            #print(self.socket.recv_string()) 
+            send_array(self.socket, np.array([self.camera.fy, self.camera.fx, 480 - self.camera.cy, self.camera.cx]))
+            print(self.socket.recv_string())
 
-        rotated_image = np.rot90(image, k=-1)
-        rotated_depth = np.rot90(depth, k=-1)
-        rotated_point = np.rot90(points, k=-1)
-        PILImage.fromarray(rotated_image).save("./images/peiqi_test_rgb21.png")
-        #PILImage.fromarray(rotated_depth).save("./images/peiqi_test_depth21.png")
-        send_array(self.socket, rotated_image)
-        print(self.socket.recv_string())
-        send_array(self.socket, rotated_depth)
-        print(self.socket.recv_string()) 
-        #send_array(self.socket, rotated_point)
-        #print(self.socket.recv_string()) 
-        send_array(self.socket, np.array([self.camera.fy, self.camera.fx, 480 - self.camera.cy, self.camera.cx]))
-        print(self.socket.recv_string())
-        self.socket.send_string(A)
-        print(self.socket.recv_string())
+            self.socket.send_string("Waiting for Response")
+            status = self.socket.recv_string()
+            if (status == "success"):
+                flag = False
+                # self.socket.send("Acknowledged")
+            else:
+                print("--------------------Recaptuirng Image------------------------")
+                # self.socket.send("Capturing New Image")
+        
         self.socket.send_string("Waiting for gripper pose")
         translation = recv_array(self.socket)
         self.socket.send_string("translation received")
@@ -95,5 +104,4 @@ class ImagePublisher():
         print(translation)
         print("rotation: ")
         print(rotation)
-        print(self.socket.recv_string())
         return translation, rotation, depth

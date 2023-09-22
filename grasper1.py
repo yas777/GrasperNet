@@ -135,6 +135,7 @@ if __name__ == "__main__":
         print(f"Points frame rotation - {rotation1.GetRPY()}, {rotation1.GetEulerZYX()}")
         print(rotation1)
 
+
         # Rotation from camera frame to pose frame
         rotation =  rotation1_bottom * rotation1
         print(rotation)
@@ -225,7 +226,7 @@ if __name__ == "__main__":
         #     1
         # )
         hello_robot.move_to_pose(
-            [0, 0, 0.02],
+            [0, 0, 0.01],
             [0, 0, 0],
             # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
             [gripper_pos]

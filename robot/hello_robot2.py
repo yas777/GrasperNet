@@ -139,8 +139,8 @@ class HelloRobot:
             target_state[4] = wrist_pitch
         if not wrist_roll is None:
             target_state[5] = wrist_roll    
-        # self.robot.manip.goto_joint_positions(target_state, relative = False)
-        self.robot.manip.goto(target_state)
+        self.robot.manip.goto_joint_positions(target_state, relative = False)
+        # self.robot.manip.goto(target_state)
         target_head_pan, target_head_tilt = self.robot.head.get_pan_tilt()
         if not head_tilt is None:
             target_head_tilt = head_tilt
@@ -386,7 +386,7 @@ class HelloRobot:
         
         for joint_index in range(self.joint_array.rows()):
             self.joint_array[joint_index] = self.joints[self.joint_list[joint_index]]
-            # print(f"{joint_index} - {self.joint_array[joint_index]}")
+            print(f"{joint_index} - {self.joint_array[joint_index]}")
         print("\n\n")
 
         curr_pose = PyKDL.Frame()

@@ -35,6 +35,9 @@ from multiprocessing import Process
 POS_TOL = 0.1
 YAW_TOL = 0.2
 
+X_OFFSET = -6.5
+Y_OFFSET = 1.5
+
 def navigate(robot, xyt_goal):
     while True:
         robot.nav.navigate_to(xyt_goal)
@@ -78,6 +81,8 @@ def run_navigation(robot, socket):
     #print("Resetting robot...")
     #robot.reset()
     start_xy = robot.nav.get_base_pose()
+    start_xy[0] += X_OFFSET
+    start_xy[1] += Y_OFFSET
     A = str(input("Enter A: "))
     print("A = ", A)
     B = str(input("Enter B: "))
@@ -92,6 +97,7 @@ def run_navigation(robot, socket):
     paths = recv_array(socket)
     print(paths)
     for path in paths:
+        path = (path[0] - X_OFFSET, path[1] - Y_OFFSET, path[2])
         navigate(robot, path)
     xyt = robot.nav.get_base_pose()
     xyt[2] = xyt[2] + np.pi / 2
@@ -103,7 +109,7 @@ def run_manipulation(args, hello_robot, socket, text, image_publisher, transform
     gripper_pos = 1
     global_parameters.INIT_WRIST_PITCH = -1.57
 
-    translation, rotation, depth = image_publisher.publish_image()
+    translation, rotation, depth = image_publisher.publish_image(text)
     point = PyKDL.Vector(-translation[1], -translation[0], translation[2])
         
     rotation1 = PyKDL.Rotation(rotation[0][0], rotation[0][1], rotation[0][2],
@@ -204,7 +210,7 @@ def run():
     else:
         hello_robot = HelloRobot(end_link=base_node)
 
-    camera = RealSenseCamera(robot)
+    camera = RealSenseCamera(hello_robot.robot)
     image_publisher = ImagePublisher(camera)
 
     context = zmq.Context()
@@ -218,9 +224,10 @@ def run():
         hello_robot.robot.move_to_post_nav_posture()
         hello_robot.robot.head.look_front()
         A = run_navigation(hello_robot.robot, nav_socket)
-        hello_robot.switch_to_manipulation_mode()
+        #A = "yellow bottle"
+        hello_robot.robot.switch_to_manipulation_mode()
         hello_robot.robot.move_to_manip_posture()
-        hello_robot.robot.head.look_to_ee()
+        hello_robot.robot.head.look_at_ee()
         run_manipulation(args, hello_robot, manip_socket, A, image_publisher, transform_node, base_node)
 
 if __name__ == '__main__':
