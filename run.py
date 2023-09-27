@@ -35,8 +35,9 @@ from multiprocessing import Process
 POS_TOL = 0.1
 YAW_TOL = 0.2
 
-X_OFFSET = -6.5
-Y_OFFSET = 1.5
+X_OFFSET = -6.325
+Y_OFFSET = -1.069
+THETA_OFFSET =  4.059
 
 def navigate(robot, xyt_goal):
     while True:
@@ -83,6 +84,7 @@ def run_navigation(robot, socket):
     start_xy = robot.nav.get_base_pose()
     start_xy[0] += X_OFFSET
     start_xy[1] += Y_OFFSET
+    start_xy[2] += THETA_OFFSET
     A = str(input("Enter A: "))
     print("A = ", A)
     B = str(input("Enter B: "))
@@ -97,8 +99,12 @@ def run_navigation(robot, socket):
     paths = recv_array(socket)
     print(paths)
     for path in paths:
-        path = (path[0] - X_OFFSET, path[1] - Y_OFFSET, path[2])
-        navigate(robot, path)
+        path = (path[0] - X_OFFSET, path[1] - Y_OFFSET, path[2] - THETA_OFFSET)
+        print(path)
+    for path in paths:
+        path = (path[0] - X_OFFSET, path[1] - Y_OFFSET, path[2] - THETA_OFFSET)
+        print(path)
+        #navigate(robot, path)
     xyt = robot.nav.get_base_pose()
     xyt[2] = xyt[2] + np.pi / 2
     navigate(robot, xyt)

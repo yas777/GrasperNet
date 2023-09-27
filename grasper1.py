@@ -16,6 +16,7 @@ import numpy as np
 import sys
 import PyKDL
 from PIL import Image
+import math
 
 from multiprocessing import Process
 
@@ -75,6 +76,7 @@ if __name__ == "__main__":
 
     # Moving robot to intital position
 
+    print(args.picking_object)
     print(INIT_ARM_POS, INIT_WRIST_PITCH, INIT_WRIST_ROLL, INIT_WRIST_YAW, gripper_pos)
     hello_robot.move_to_position(arm_pos=INIT_ARM_POS,
                                 wrist_pitch = INIT_WRIST_PITCH,
@@ -96,7 +98,7 @@ if __name__ == "__main__":
     camera = RealSenseCamera(hello_robot.robot)
     if args.mode == "capture":
         image_publisher = ImagePublisher(camera)
-        image_publisher.publish_image("apple")
+        image_publisher.publish_image(args.picking_object)
         exit()
 
     # point selector
@@ -119,7 +121,7 @@ if __name__ == "__main__":
 
     if args.mode == "pick":
         image_publisher = ImagePublisher(camera)
-        translation, rotation, depth = image_publisher.publish_image('apple')
+        translation, rotation, depth = image_publisher.publish_image(args.picking_object)
         point = PyKDL.Vector(-translation[1], -translation[0], translation[2])
         #point = PyKDL.Vector(translation[1], -translation[0], translation[2])
         
@@ -132,12 +134,22 @@ if __name__ == "__main__":
         rotation1_bottom = PyKDL.Rotation(0.0000000, -1.0000000,  0.0000000,
                                     -1.0000000,  0.0000000,  0.0000000, 
                                     0.0000000,  0.0000000, 1.0000000)
+        
+        # 
+        gripper_yaw = math.atan(rotation[1][0]/rotation[0][0])
+        print(f"gripper_yaw - {gripper_yaw}")
+        
+
+        # Remove yaw from gripper rotation as we are rotating base
+        rotation1_yaw = PyKDL.Rotation(math.cos(gripper_yaw), math.sin(gripper_yaw), 0,
+                                        -math.sin(gripper_yaw), math.cos(gripper_yaw), 0,
+                                        0, 0, 1) 
+        
         print(f"Points frame rotation - {rotation1.GetRPY()}, {rotation1.GetEulerZYX()}")
         print(rotation1)
 
-
         # Rotation from camera frame to pose frame
-        rotation =  rotation1_bottom * rotation1
+        rotation =  rotation1_bottom * rotation1_yaw * rotation1
         print(rotation)
         print(f"Camera frame rotation - {rotation.GetRPY()}, {rotation.GetEulerZYX()}")
 
@@ -176,7 +188,12 @@ if __name__ == "__main__":
         
         # final Rotation of gripper to hold the objet
         final_rotation = transformed_frame.M * rotation2_top
+        
+        # Rotating the base to align the gripper with object
+        hello_robot.robot.switch_to_navigation_mode()
+        hello_robot.move_to_position(base_theta=gripper_yaw)
 
+        hello_robot.robot.switch_to_manipulation_mode()
         # Only rotating the gripper 
         hello_robot.move_to_pose(
             [0, 0, 0],
@@ -211,7 +228,7 @@ if __name__ == "__main__":
         print(hello_robot.robot._ros_client.get_joint_state()[0])
         print("\n\n\n\n\n\n\n\n\n\n\n")
         hello_robot.move_to_pose(
-             [0, 0, 0.18],
+             [0, 0, 0.16],
              [0, 0, 0],
              # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
             [gripper_pos]
@@ -225,11 +242,13 @@ if __name__ == "__main__":
         #     [gripper_pos],
         #     1
         # )
+        velocities = [0.05]*6
         hello_robot.move_to_pose(
-            [0, 0, 0.01],
+            [0, 0, 0.03],
             [0, 0, 0],
             # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
-            [gripper_pos]
+            [gripper_pos],
+            velocities=velocities
         )
         print(hello_robot.robot._ros_client.get_joint_state()[0])
         print("\n\n\n\n\n\n\n\n\n\n\n")

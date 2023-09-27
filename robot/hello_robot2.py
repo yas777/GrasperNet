@@ -114,8 +114,12 @@ class HelloRobot:
         self.ik_p_kdl = PyKDL.ChainIkSolverPos_NR(self.arm_chain, self.fk_p_kdl, self.ik_v_kdl) 
     
 
-    def move_to_position(self, lift_pos = None, arm_pos = None, base_trans = 0.0, wrist_yaw = None, wrist_pitch = None, wrist_roll = None, gripper_pos = None, head_tilt = -0.45, head_pan = -1.53):
+    def move_to_position(self, lift_pos = None, arm_pos = None, base_trans = 0.0, wrist_yaw = None, wrist_pitch = None, wrist_roll = None, gripper_pos = None, base_theta = None, head_tilt = -0.45, head_pan = -1.53):
 
+        if base_theta is not None:
+            self.robot.nav.navigate_to([0, 0, base_theta])
+            return
+            
         target_state = self.robot.manip.get_joint_positions()
         #BASE_TRANSLATION = 0
         #LIFT = 1
@@ -139,6 +143,7 @@ class HelloRobot:
             target_state[4] = wrist_pitch
         if not wrist_roll is None:
             target_state[5] = wrist_roll    
+
         self.robot.manip.goto_joint_positions(target_state, relative = False)
         # self.robot.manip.goto(target_state)
         target_head_pan, target_head_tilt = self.robot.head.get_pan_tilt()
@@ -241,7 +246,7 @@ class HelloRobot:
         self.head_joints['joint_head_tilt'] = tilt
 
     # following function is used to move the robot to a desired joint configuration 
-    def move_to_joints(self, joints, gripper, mode=0):
+    def move_to_joints(self, joints, gripper, mode=0, velocities = None):
         # update the robot joints to the new values from 'joints'
 
         ## the commented code adds a wall on the right side of the robot wrt its starting base position
@@ -273,12 +278,15 @@ class HelloRobot:
 
         if mode:
             # Moving only the lift
-
             target1 = [0 for _ in range(6)]
             target1[1] = target_state[1]
-            self.robot.manip.goto_joint_positions(target1, relative=True)
-        self.robot.manip.goto_joint_positions(target_state)
-        time.sleep(2)
+            self.robot.manip.goto_joint_positions(target1, velocities, relative=True)
+            time.sleep(0.7)
+
+        self.robot.manip.goto_joint_positions(target_state, velocities)
+        # self.robot.manip.goto(target_state, velocities)
+        time.sleep(0.7)
+        # time.sleep(2)
         
         #yaw, pitch, roll limits 
         # self.robot.end_of_arm.move_to('wrist_yaw', self.clamp(joints['joint_wrist_yaw'], -0.4, 1.7))
@@ -290,15 +298,15 @@ class HelloRobot:
         
 
         # gripper[0] value ranges from 0 to 1, 0 being closed and 1 being open. Below code maps the gripper value to the range of the gripper joint
-        self.CURRENT_STATE  = gripper[0]*(self.STRETCH_GRIPPER_MAX-self.STRETCH_GRIPPER_MIN) + self.STRETCH_GRIPPER_MIN
+        # self.CURRENT_STATE  = gripper[0]*(self.STRETCH_GRIPPER_MAX-self.STRETCH_GRIPPER_MIN) + self.STRETCH_GRIPPER_MIN
 
-        self.robot.manip.move_gripper(self.CURRENT_STATE)
+        # self.robot.manip.move_gripper(self.CURRENT_STATE)
         #code below is to map values below certain threshold to negative values to close the gripper much tighter
         #if self.CURRENT_STATE<self.GRIPPER_THRESHOLD:
         #    self.robot.manip.move_gripper(-0.1)
 
         #sleeping to make sure all the joints are updated correctly (remove if not necessary)
-        time.sleep(2)
+        # time.sleep(2)
 
     
     def get_joint_transform(self, node1, node2):
@@ -374,7 +382,7 @@ class HelloRobot:
 
         return frame_transform, frame2, frame1
     
-    def move_to_pose(self, translation_tensor, rotational_tensor, gripper, move_mode=0):
+    def move_to_pose(self, translation_tensor, rotational_tensor, gripper, move_mode=0, velocities=None):
         
 
         translation = [translation_tensor[0], translation_tensor[1], translation_tensor[2]]
@@ -392,8 +400,6 @@ class HelloRobot:
         curr_pose = PyKDL.Frame()
         del_pose = PyKDL.Frame()
         self.fk_p_kdl.JntToCart(self.joint_array, curr_pose)
-
-
 
         rot_matrix = R.from_euler('xyz', rotation, degrees=False).as_matrix()
 
@@ -441,7 +447,7 @@ class HelloRobot:
         # # print(test_pose.p)
         # # print(test_pose.M.GetRPY())
 
-        self.move_to_joints(ik_joints, gripper, move_mode)
+        self.move_to_joints(ik_joints, gripper, move_mode, velocities)
         # time.sleep(2)
 
         self.updateJoints()
