@@ -24,8 +24,8 @@ OVERRIDE_STATES = {}
 
 class HelloRobot:
 
-    def __init__(self, urdf_file = 'stretch.urdf', stretch_client_urdf_file = 'hab_stretch/urdf', 
-    #def __init__(self, urdf_file = 'home-robot/assets/hab_stretch/urdf/stretch.urdf', stretch_client_urdf_file = 'home-robot/assets/hab_stretch/urdf',
+    def __init__(self, urdf_file = 'stretch1.urdf', stretch_client_urdf_file = 'hab_stretch/urdf', 
+    #def __init__(self, urdf_file = 'hab_stretch/urdf/stretch.urdf', stretch_client_urdf_file = 'hab_stretch/urdf',
             gripper_threshold = 7.0, stretch_gripper_max = 0.3, stretch_gripper_min = 0, end_link = "link_raised_gripper"):
         self.STRETCH_GRIPPER_MAX = stretch_gripper_max
         self.STRETCH_GRIPPER_MIN = stretch_gripper_min
@@ -114,7 +114,7 @@ class HelloRobot:
         self.ik_p_kdl = PyKDL.ChainIkSolverPos_NR(self.arm_chain, self.fk_p_kdl, self.ik_v_kdl) 
     
 
-    def move_to_position(self, lift_pos = None, arm_pos = None, base_trans = 0.0, wrist_yaw = None, wrist_pitch = None, wrist_roll = None, gripper_pos = None, base_theta = None, head_tilt = -0.45, head_pan = -1.53):
+    def move_to_position(self, lift_pos = None, arm_pos = None, base_trans = 0.0, wrist_yaw = None, wrist_pitch = None, wrist_roll = None, gripper_pos = None, base_theta = None, head_tilt = None, head_pan = None):
 
         if base_theta is not None:
             self.robot.nav.navigate_to([0, 0, base_theta])
@@ -143,7 +143,10 @@ class HelloRobot:
             target_state[4] = wrist_pitch
         if not wrist_roll is None:
             target_state[5] = wrist_roll    
-
+        
+        velocities = [1]*8
+        velocities[5:] = [0.01, 0.01, 0.01, 0.01]
+        velocities[0] = 0.01
         self.robot.manip.goto_joint_positions(target_state, relative = False)
         # self.robot.manip.goto(target_state)
         target_head_pan, target_head_tilt = self.robot.head.get_pan_tilt()
@@ -179,7 +182,7 @@ class HelloRobot:
             # time.sleep(2)
 
             curr_gripper_pose = self.robot.manip.get_gripper_position()
-            print(curr_gripper_pose)
+            # print(curr_gripper_pose)
             if next_gripper_pos == -0.2 or (curr_gripper_pose > next_gripper_pos + 0.01):
                 break
             
@@ -265,6 +268,8 @@ class HelloRobot:
         #WRIST_YAW = 3
         #WRIST_PITCH = 4
         #WRIST_ROLL = 5
+        state = self.robot.manip.get_joint_positions()
+
         target_state = [
             joints['joint_fake'], 
             joints['joint_lift'],
@@ -276,14 +281,17 @@ class HelloRobot:
             joints['joint_wrist_pitch'],
             joints['joint_wrist_roll']]
 
+        # print(f"velocites: {velocities}")
         if mode:
             # Moving only the lift
             target1 = [0 for _ in range(6)]
-            target1[1] = target_state[1]
-            self.robot.manip.goto_joint_positions(target1, velocities, relative=True)
+            target1[1] = target_state[1] - state[1]
+            #self.robot.manip.goto_joint_positions(target1, velocities, relative=True)
+            self.robot.manip.goto_joint_positions(target1, relative=True, velocities=velocities)
             time.sleep(0.7)
 
-        self.robot.manip.goto_joint_positions(target_state, velocities)
+        #self.robot.manip.goto_joint_positions(target_state, velocities)
+        self.robot.manip.goto_joint_positions(target_state, velocities=velocities)
         # self.robot.manip.goto(target_state, velocities)
         time.sleep(0.7)
         # time.sleep(2)
@@ -342,10 +350,10 @@ class HelloRobot:
             ref_joints1 = self.joints
             ref_joint1_list = self.joint_list
 
-        print("hello")
-        print(ref_joints1, ref_joint1_list)
-        print("hello again")
-        print(self.joints, self.joint_list)
+        # print("hello")
+        # print(ref_joints1, ref_joint1_list)
+        # print("hello again")
+        # print(self.joints, self.joint_list)
             
         # Updating the joint arrays from self.joints
         for joint_index in range(joint_array1.rows()):
@@ -394,7 +402,7 @@ class HelloRobot:
         
         for joint_index in range(self.joint_array.rows()):
             self.joint_array[joint_index] = self.joints[self.joint_list[joint_index]]
-            print(f"{joint_index} - {self.joint_array[joint_index]}")
+            # print(f"{joint_index} - {self.joint_array[joint_index]}")
         print("\n\n")
 
         curr_pose = PyKDL.Frame()
@@ -418,12 +426,12 @@ class HelloRobot:
         # print("goal pose - ", goal_pose_new)
 
         # correction in final x, y, z postions
-        print(f"corrections - {CORRECTION_X, CORRECTION_Y, CORRECTION_Z}")
+        # print(f"corrections - {CORRECTION_X, CORRECTION_Y, CORRECTION_Z}")
         # print(f"corrections - {CORRECTION_X, global_parameters.CORRECTION_Y, CORRECTION_Z}")
         goal_pose_new.p[0] = goal_pose_new.p[0] + global_parameters.CORRECTION_X
         goal_pose_new.p[1] = goal_pose_new.p[1] + global_parameters.CORRECTION_Y
         goal_pose_new.p[2] = goal_pose_new.p[2] + global_parameters.CORRECTION_Z
-        print("goal pose - ", goal_pose_new)        
+        # print("goal pose - ", goal_pose_new)        
 
         seed_array = PyKDL.JntArray(self.arm_chain.getNrOfJoints())
         # seed_array[self.arm_chain.getNrOfJoints()-1] = self.joint_array[self.arm_chain.getNrOfJoints() - 1]
@@ -431,13 +439,13 @@ class HelloRobot:
         self.ik_p_kdl.CartToJnt(seed_array, goal_pose_new, self.joint_array)
 
         ik_joints = {}
-        print("self.joint_array: ", self.joint_array)
+        # print("self.joint_array: ", self.joint_array)
         
-        print("joint array: ", self.joint_array)
+        # print("joint array: ", self.joint_array)
         # print(f"joint array length -{self.joint_array.rows()}")
         for joint_index in range(self.joint_array.rows()):
             ik_joints[self.joint_list[joint_index]] = self.joint_array[joint_index]
-        print("ik joints - ", ik_joints)
+        # print("ik joints - ", ik_joints)
 
 
         # print('ik_joints', ik_joints)

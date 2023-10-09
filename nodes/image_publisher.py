@@ -64,7 +64,7 @@ class ImagePublisher():
         #self.image = None
         #self.depth = None
 
-    def publish_image(self, A):
+    def publish_image(self, A, head_tilt=-1):
 
         image, depth, points = self.camera.capture_image()
 
@@ -79,11 +79,13 @@ class ImagePublisher():
         print(self.socket.recv_string()) 
         #send_array(self.socket, rotated_point)
         #print(self.socket.recv_string()) 
-        send_array(self.socket, np.array([self.camera.fy, self.camera.fx, 480 - self.camera.cy, self.camera.cx]))
+        #send_array(self.socket, np.array([self.camera.fy, self.camera.fx, 480 - self.camera.cy, self.camera.cx]))
+        print(f"sending head_tilt - {head_tilt}")
+        send_array(self.socket, np.array([self.camera.fy, self.camera.fx, 480 - self.camera.cy, self.camera.cx, int(head_tilt*100)]))
         print(self.socket.recv_string())
         self.socket.send_string(A)
         print(self.socket.recv_string())
-        self.socket.send_string("Waiting for gripper pose")
+        self.socket.send_string("Waiting for gripper pose/ base and head trans")
         translation = recv_array(self.socket)
         self.socket.send_string("translation received")
         rotation = recv_array(self.socket)
@@ -91,9 +93,12 @@ class ImagePublisher():
         depth = recv_array(self.socket)[0]
         print(f"depth received - {depth}")
         self.socket.send_string(f"depth received")
+        cropped = recv_array(self.socket)[0]
+        print(f"cropped received - {cropped}")
+        self.socket.send_string(f"cropped received")
         print("translation: ")
         print(translation)
         print("rotation: ")
         print(rotation)
         print(self.socket.recv_string())
-        return translation, rotation, depth
+        return translation, rotation, depth, cropped
