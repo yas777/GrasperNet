@@ -123,19 +123,51 @@ if __name__ == "__main__":
 
         # Centering the object
         # args.picking_object = 'green bottle'
-        base_trans, head_tilt, _, _ = image_publisher.publish_image(args.picking_object, head_tilt=INIT_HEAD_TILT)
-        # head_pan = INIT_HEAD_PAN 
+        head_tilt_angles = [0.1, -0.1]
+        tilt_retries, side_retries = 0, 0
+        retry_flag = True
+        head_tilt = INIT_HEAD_TILT
         head_pan = INIT_HEAD_PAN
-        # head_tilt = INIT_HEAD_TILT
-        head_tilt = INIT_HEAD_TILT + (head_tilt)
-        print(f"head_tilt - {head_tilt}")
-        hello_robot.move_to_position(base_trans=base_trans[0],
-                                    head_pan=head_pan,
-                                    head_tilt=head_tilt)
 
-        time.sleep(0.7)
-        # Getting final translation, rotation of gripper
-        translation, rotation, depth, cropped = image_publisher.publish_image(args.picking_object, head_tilt=head_tilt)
+        while(retry_flag):
+            translation, rotation, depth, cropped, retry_flag = image_publisher.publish_image(args.picking_object, head_tilt=head_tilt)
+
+            if (retry_flag == 1):
+                base_trans = translation[0]
+                head_tilt += (rotation[0])
+
+                hello_robot.move_to_position(base_trans=base_trans,
+                                        head_pan=head_pan,
+                                        head_tilt=head_tilt)
+            
+            elif (side_retries == 2 and tilt_retries == 2):
+                hello_robot.move_to_position(base_trans=0.15, head_tilt=head_tilt)
+                side_retries = 3
+
+            elif retry_flag == 2:
+                if (tilt_retries == 2):
+                    if (side_retries == 0):
+                        hello_robot.move_to_position(base_trans=0.15, head_tilt=head_tilt)
+                        side_retries = 1
+                    else:
+                        hello_robot.move_to_position(base_trans=-0.3, head_tilt=head_tilt)
+                        side_retries = 2
+                    tilt_retries = 0
+                else:
+                    print(f"retrying with head tilt : {head_tilt + head_tilt_angles[tilt_retries]}")
+                    hello_robot.move_to_position(head_pan=head_pan,
+                                            head_tilt=head_tilt + head_tilt_angles[tilt_retries])
+                    tilt_retries += 1
+                
+            elif (retry_flag == 0):
+                retry_flag = False
+            
+            elif side_retries == 3:
+                print("No poses found in all retries")
+
+        # time.sleep(0.7)
+        # # Getting final translation, rotation of gripper
+        # translation, rotation, depth, cropped = image_publisher.publish_image(args.picking_object, head_tilt=head_tilt)
         point = PyKDL.Vector(-translation[1], -translation[0], translation[2])
         #point = PyKDL.Vector(translation[1], -translation[0], translation[2])
         

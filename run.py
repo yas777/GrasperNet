@@ -35,9 +35,12 @@ from multiprocessing import Process
 POS_TOL = 0.1
 YAW_TOL = 0.2
 
-X_OFFSET = 0.703564
-Y_OFFSET = 0.885498
-THETA_OFFSET =  1.0468683181634417
+X_OFFSET = 1.302362
+Y_OFFSET = 0.647182
+THETA_OFFSET =  0.4362338427563786
+#X_OFFSET = -0.415527 
+#Y_OFFSET = 0.222900
+#THETA_OFFSET = 2.0075248414115436
 
 r2n_matrix = \
     np.array([
@@ -146,13 +149,16 @@ def run_navigation(robot, socket):
         #path = (path[0] - X_OFFSET, path[1] - Y_OFFSET, path[2] - THETA_OFFSET)
         print(transformed_path)
         navigate(robot, transformed_path)
+    socket.send_string("Path received")
+    move_range = recv_array(socket)
+    print(move_range)
     xyt = robot.nav.get_base_pose()
     xyt[2] = xyt[2] + np.pi / 2
     print(xyt)
     navigate(robot, xyt)
-    return A
+    return A, move_range
 
-def run_manipulation(args, hello_robot, socket, text, image_publisher, transform_node, base_node):
+def run_manipulation(args, hello_robot, socket, text, image_publisher, transform_node, base_node, move_range = [False, False]):
     
     gripper_pos = 1
     global_parameters.INIT_WRIST_PITCH = -1.57
@@ -161,25 +167,69 @@ def run_manipulation(args, hello_robot, socket, text, image_publisher, transform
                                 head_pan=INIT_HEAD_PAN,
                                 head_tilt=INIT_HEAD_TILT,
                                 gripper_pos = gripper_pos)
-    time.sleep(1)
+    # time.sleep(1)
     
     hello_robot.move_to_position(lift_pos=INIT_LIFT_POS,
                                 wrist_pitch = global_parameters.INIT_WRIST_PITCH,
                                 wrist_roll = INIT_WRIST_ROLL,
                                 wrist_yaw = INIT_WRIST_YAW)
 
-    head_pan, head_tilt, _, _ = image_publisher.publish_image(text, head_tilt=INIT_HEAD_TILT)
-    head_pan = INIT_HEAD_PAN + (head_pan)
-    # head_tilt = INIT_HEAD_TILT
-    head_tilt = INIT_HEAD_TILT + (head_tilt)
-    print(f"head_tilt - {head_tilt}")
-    hello_robot.move_to_position(#base_trans=base_trans[0],
-                                head_pan=head_pan,
-                                head_tilt=head_tilt)
+    # head_pan, head_tilt, _, _ = image_publisher.publish_image(text, head_tilt=INIT_HEAD_TILT)
+    # head_pan = INIT_HEAD_PAN + (head_pan)
+    # # head_tilt = INIT_HEAD_TILT
+    # head_tilt = INIT_HEAD_TILT + (head_tilt)
+    # print(f"head_tilt - {head_tilt}")
+    # hello_robot.move_to_position(#base_trans=base_trans[0],
+    #                             head_pan=head_pan,
+    #                             head_tilt=head_tilt)
+
+    head_tilt_angles = [0.15, 0.05, -0.05, -0.15]
+    tilt_retries, side_retries = 0, 0
+    retry_flag = True
+    head_tilt = INIT_HEAD_TILT
+    head_pan = INIT_HEAD_PAN
+
+    while(retry_flag):
+        translation, rotation, depth, cropped, retry_flag = image_publisher.publish_image(text, head_tilt=head_tilt)
+
+        if (retry_flag == 1):
+            base_trans = translation[0]
+            if base_trans < 0:
+                base_trans = max(-0.1 if move_range[1] else 0, base_trans)
+            else:
+                base_trans = min(0.1 if move_range[0] else 0, base_trans)
+            head_tilt += (rotation[0])
+
+            hello_robot.move_to_position(base_trans=base_trans,
+                                    head_pan=head_pan,
+                                    head_tilt=head_tilt)
+            
+        elif (side_retries == 2 and tilt_retries == 4):
+            print("No poses in all tries")
+            exit()
+
+        elif retry_flag == 2:
+            if (tilt_retries == 4):
+                if (side_retries == 0):
+                    hello_robot.move_to_position(base_trans= -0.1 if move_range[1] else 0, head_tilt=head_tilt)
+                    side_retries = 1
+                else:
+                    hello_robot.move_to_position(base_trans= 0.2 if move_range[0] else 0, head_tilt=head_tilt)
+                    side_retries = 2
+                tilt_retries = 0
+            else:
+                print(f"retrying with head tilt : {head_tilt + head_tilt_angles[tilt_retries]}")
+                hello_robot.move_to_position(head_pan=head_pan,
+                                        head_tilt=head_tilt + head_tilt_angles[tilt_retries])
+                tilt_retries += 1
+                
+        elif (retry_flag == 0):
+            retry_flag = False
+        time.sleep(0.7)
 
     time.sleep(0.7)
     # Getting final translation, rotation of gripper
-    translation, rotation, depth, cropped = image_publisher.publish_image(text, head_tilt=head_tilt)
+    #translation, rotation, depth, cropped = image_publisher.publish_image(text, head_tilt=head_tilt)
     point = PyKDL.Vector(-translation[1], -translation[0], translation[2])
         
     rotation1 = PyKDL.Rotation(rotation[0][0], rotation[0][1], rotation[0][2],
@@ -198,7 +248,7 @@ def run_manipulation(args, hello_robot, socket, text, image_publisher, transform
 
     dest_frame = PyKDL.Frame(rotation, point) 
 
-    hello_robot.move_to_position(lift_pos = 1.0, head_pan = None, head_tilt = None)
+    hello_robot.move_to_position(lift_pos = 1.1, head_pan = None, head_tilt = None)
     # transform - Rotation and translation from camera frame to gripper frame
     transform, frame2, frame1 = hello_robot.get_joint_transform(base_node, transform_node)
     transformed_frame = transform * dest_frame
@@ -300,7 +350,7 @@ def run_manipulation(args, hello_robot, socket, text, image_publisher, transform
     time.sleep(5)
     hello_robot.move_to_position(gripper_pos = 1)
     hello_robot.move_to_position(arm_pos = INIT_ARM_POS)
-    hello_robot.move_to_position(lift_pos = 1.0)
+    hello_robot.move_to_position(lift_pos = 1.1)
     hello_robot.move_to_position(wrist_pitch = global_parameters.INIT_WRIST_PITCH)
 
     # Shift back to the original point
@@ -346,12 +396,12 @@ def run():
         hello_robot.robot.switch_to_navigation_mode()
         hello_robot.robot.move_to_post_nav_posture()
         hello_robot.robot.head.look_front()
-        A = run_navigation(hello_robot.robot, nav_socket)
+        A, move_range = run_navigation(hello_robot.robot, nav_socket)
         time.sleep(1.5)
         hello_robot.robot.switch_to_manipulation_mode()
         hello_robot.robot.move_to_manip_posture()
         hello_robot.robot.head.look_at_ee()
-        run_manipulation(args, hello_robot, manip_socket, A, image_publisher, transform_node, base_node)
+        run_manipulation(args, hello_robot, manip_socket, A, image_publisher, transform_node, base_node, move_range)
 
 if __name__ == '__main__':
     run()

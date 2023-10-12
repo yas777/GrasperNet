@@ -90,15 +90,17 @@ class ImagePublisher():
         self.socket.send_string("translation received")
         rotation = recv_array(self.socket)
         self.socket.send_string("rotation received")
-        depth = recv_array(self.socket)[0]
-        print(f"depth received - {depth}")
-        self.socket.send_string(f"depth received")
-        cropped = recv_array(self.socket)[0]
-        print(f"cropped received - {cropped}")
-        self.socket.send_string(f"cropped received")
+        add_data = recv_array(self.socket)
+        self.socket.send_string(f"Additional data received")
+
+        depth = add_data[0]
+        cropped = add_data[1]
+        retry = add_data[2]
+        print(f"Additional data received - {add_data}")
+        # self.socket.send_string(f"cropped received")
         print("translation: ")
         print(translation)
         print("rotation: ")
         print(rotation)
-        print(self.socket.recv_string())
-        return translation, rotation, depth, cropped
+        print(self.socket.recv_string())    
+        return translation, rotation, depth, cropped, retry

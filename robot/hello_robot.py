@@ -243,7 +243,7 @@ class HelloRobot:
         # print(f"joints - {joints}")
         self.robot.base.translate_by(joints['joint_fake']-self.joints['joint_fake'], 5)
         self.robot.lift.move_to(joints['joint_lift'])
-        if not move_mode:
+        if move_mode:
             self.robot.push_command()
             time.sleep(2)
         
