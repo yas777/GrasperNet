@@ -4,7 +4,7 @@ import yaml
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--mode",
-                    choices = ["move", "pick", "capture"], default = "move",
+                    choices = ["move", "pick", "capture", "place"], default = "move",
                     help = "Choose the mode of operation."
                             "m  -> moving about a frame of reference to a point"
                             "po -> Picking a object with fixed offset")

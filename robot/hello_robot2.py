@@ -24,9 +24,9 @@ OVERRIDE_STATES = {}
 
 class HelloRobot:
 
-    def __init__(self, urdf_file = 'stretch1.urdf', stretch_client_urdf_file = 'hab_stretch/urdf', 
+    def __init__(self, urdf_file = 'stretch5.urdf', stretch_client_urdf_file = 'hab_stretch/urdf', 
     #def __init__(self, urdf_file = 'hab_stretch/urdf/stretch.urdf', stretch_client_urdf_file = 'hab_stretch/urdf',
-            gripper_threshold = 7.0, stretch_gripper_max = 0.3, stretch_gripper_min = 0, end_link = "link_raised_gripper"):
+            gripper_threshold = 7.0, stretch_gripper_max = 0.3, stretch_gripper_min = 0, end_link = GRIPPER_MID_NODE):
         self.STRETCH_GRIPPER_MAX = stretch_gripper_max
         self.STRETCH_GRIPPER_MIN = stretch_gripper_min
         self.urdf_file = urdf_file
@@ -53,8 +53,6 @@ class HelloRobot:
         # Initializing the robot base position
         #self.base_x = self.robot.nav.get_base_pose()[0]
         #self.base_y = self.robot.nav.get_base_pose()[1]
-
-    
         time.sleep(2)
 
         # Constraining the robots movement
@@ -193,9 +191,9 @@ class HelloRobot:
                 next_gripper_pos = -0.2
 
         # move up
-        target_state = self.robot.manip.get_joint_positions()
-        target_state[1] = target_state[1] + 0.1
-        self.robot.manip.goto_joint_positions(target_state)
+        # target_state = self.robot.manip.get_joint_positions()
+        # target_state[1] = target_state[1] + 0.1
+        # self.robot.manip.goto_joint_positions(target_state)
         # time.sleep(2)
 
     def updateJoints(self):
@@ -288,11 +286,11 @@ class HelloRobot:
             target1 = [0 for _ in range(6)]
             target1[1] = target_state[1] - state[1]
             #self.robot.manip.goto_joint_positions(target1, velocities, relative=True)
-            self.robot.manip.goto_joint_positions(target1, relative=True, velocities=velocities)
+            self.robot.manip.goto_joint_positions(target1, relative=True)
             time.sleep(0.7)
 
         #self.robot.manip.goto_joint_positions(target_state, velocities)
-        self.robot.manip.goto_joint_positions(target_state, velocities=velocities)
+        self.robot.manip.goto_joint_positions(target_state)
         # self.robot.manip.goto(target_state, velocities)
         time.sleep(0.7)
         # time.sleep(2)
@@ -386,8 +384,10 @@ class HelloRobot:
         
         # This allows to transform a point in frame1 to frame2
         frame_transform = frame2.Inverse() * frame1
-        transform1 = self.robot._ros_client.get_frame_pose(node1, node2)
-        transform2 = self.robot._ros_client.get_frame_pose(node2, node1)
+        # transform1 = self.robot._ros_client.get_frame_pose(node1, node2)
+        # transform2 = self.robot._ros_client.get_frame_pose(node2, node1)
+        # print(transform1)
+        # print(transform2)
 
         return frame_transform, frame2, frame1
     
@@ -437,6 +437,7 @@ class HelloRobot:
         seed_array = PyKDL.JntArray(self.arm_chain.getNrOfJoints())
         # seed_array[self.arm_chain.getNrOfJoints()-1] = self.joint_array[self.arm_chain.getNrOfJoints() - 1]
         # print("seed array - ", seed_array)
+        print(seed_array, goal_pose_new)
         self.ik_p_kdl.CartToJnt(seed_array, goal_pose_new, self.joint_array)
 
         ik_joints = {}

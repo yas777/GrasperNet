@@ -190,6 +190,7 @@ def run_manipulation(args, hello_robot, socket, text, image_publisher, transform
     head_pan = INIT_HEAD_PAN
 
     while(retry_flag):
+        print(f"side, tilt retries {side_retries}, {tilt_retries}")
         translation, rotation, depth, cropped, retry_flag = image_publisher.publish_image(text, head_tilt=head_tilt)
 
         if (retry_flag == 1):
@@ -203,13 +204,12 @@ def run_manipulation(args, hello_robot, socket, text, image_publisher, transform
             hello_robot.move_to_position(base_trans=base_trans,
                                     head_pan=head_pan,
                                     head_tilt=head_tilt)
-            
-        elif (side_retries == 2 and tilt_retries == 4):
-            print("No poses in all tries")
-            exit()
 
         elif retry_flag == 2:
-            if (tilt_retries == 4):
+            if (side_retries == 2 and tilt_retries == 4):
+                hello_robot.move_to_position(base_trans=0.15, head_tilt=head_tilt)
+                side_retries = 3
+            elif (tilt_retries == 4):
                 if (side_retries == 0):
                     hello_robot.move_to_position(base_trans= -0.1 if move_range[1] else 0, head_tilt=head_tilt)
                     side_retries = 1
@@ -217,6 +217,9 @@ def run_manipulation(args, hello_robot, socket, text, image_publisher, transform
                     hello_robot.move_to_position(base_trans= 0.2 if move_range[0] else 0, head_tilt=head_tilt)
                     side_retries = 2
                 tilt_retries = 0
+            elif side_retries == 3:
+                print("No poses found in all retries")
+                exit()
             else:
                 print(f"retrying with head tilt : {head_tilt + head_tilt_angles[tilt_retries]}")
                 hello_robot.move_to_position(head_pan=head_pan,
@@ -225,9 +228,10 @@ def run_manipulation(args, hello_robot, socket, text, image_publisher, transform
                 
         elif (retry_flag == 0):
             retry_flag = False
-        time.sleep(0.7)
 
-    time.sleep(0.7)
+        time.sleep(1)
+
+    # time.sleep(0.7)
     # Getting final translation, rotation of gripper
     #translation, rotation, depth, cropped = image_publisher.publish_image(text, head_tilt=head_tilt)
     point = PyKDL.Vector(-translation[1], -translation[0], translation[2])

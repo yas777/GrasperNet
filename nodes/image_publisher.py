@@ -58,21 +58,21 @@ class ImagePublisher():
         self.bridge = CvBridge()
         context = zmq.Context()
         self.socket = context.socket(zmq.REQ)
-        self.socket.connect("tcp://172.24.71.253:5556")
+        self.socket.connect("tcp://100.107.224.62:5556")
         #self.image_publisher = rospy.Publisher(IMAGE_PUBLISHER_NAME, Image, queue_size = 1)
         #self.depth_publisher = rospy.Publisher(DEPTH_PUBLISHER_NAME, Float32MultiArray, queue_size = 1)
         #self.image = None
         #self.depth = None
 
-    def publish_image(self, A, head_tilt=-1):
+    def publish_image(self, text, mode, head_tilt=-1):
 
         image, depth, points = self.camera.capture_image()
 
         rotated_image = np.rot90(image, k=-1)
         rotated_depth = np.rot90(depth, k=-1)
         rotated_point = np.rot90(points, k=-1)
-        PILImage.fromarray(rotated_image).save("./images/peiqi_test_rgb21.png")
-        #PILImage.fromarray(rotated_depth).save("./images/peiqi_test_depth21.png")
+        PILImage.fromarray(rotated_image).save("./images/peiqi_test_rgb22.png")
+        # PILImage.fromarray(rotated_depth).save("./images/peiqi_test_depth22.png")
         send_array(self.socket, rotated_image)
         print(self.socket.recv_string())
         send_array(self.socket, rotated_depth)
@@ -83,7 +83,9 @@ class ImagePublisher():
         print(f"sending head_tilt - {head_tilt}")
         send_array(self.socket, np.array([self.camera.fy, self.camera.fx, 480 - self.camera.cy, self.camera.cx, int(head_tilt*100)]))
         print(self.socket.recv_string())
-        self.socket.send_string(A)
+        self.socket.send_string(text)
+        print(self.socket.recv_string())
+        self.socket.send_string(mode)
         print(self.socket.recv_string())
         self.socket.send_string("Waiting for gripper pose/ base and head trans")
         translation = recv_array(self.socket)

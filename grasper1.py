@@ -51,6 +51,7 @@ if __name__ == "__main__":
         transform_node = GRIPPER_FINGER_LEFT_NODE
     elif args.transform_node == "gripper_mid":
         transform_node = GRIPPER_MID_NODE
+
     
     if (args.transform):
         hello_robot = HelloRobot(end_link=transform_node)
@@ -62,7 +63,7 @@ if __name__ == "__main__":
     else:
         gripper_pos = 0
 
-    if args.mode == "capture" or args.mode == "pick":
+    if args.mode == "capture" or args.mode == "pick" or args.mode == "place":
         global_parameters.INIT_WRIST_PITCH = -1.57
 
     # Joint state publisher
@@ -89,6 +90,9 @@ if __name__ == "__main__":
                                 wrist_roll = INIT_WRIST_ROLL,
                                 wrist_yaw = INIT_WRIST_YAW)
     time.sleep(1)
+
+    # transform, _, _ = hello_robot.get_joint_transform("base_link", GRIPPER_MID_NODE)
+    # print(transform)
     # exit()
     # Intialsiing Camera
     #if args.mode == "move" or args.mode == "capture":
@@ -118,7 +122,7 @@ if __name__ == "__main__":
 
         rotation = PyKDL.Rotation(1, 0, 0, 0, 1, 0, 0, 0, 1)
 
-    if args.mode == "pick":
+    if args.mode == "pick" or args.mode == "place":
         image_publisher = ImagePublisher(camera)
 
         # Centering the object
@@ -130,8 +134,9 @@ if __name__ == "__main__":
         head_pan = INIT_HEAD_PAN
 
         while(retry_flag):
-            translation, rotation, depth, cropped, retry_flag = image_publisher.publish_image(args.picking_object, head_tilt=head_tilt)
+            translation, rotation, depth, cropped, retry_flag = image_publisher.publish_image(args.picking_object, args.mode, head_tilt=head_tilt)
 
+            print(f"retry flag : {retry_flag}")
             if (retry_flag == 1):
                 base_trans = translation[0]
                 head_tilt += (rotation[0])
@@ -158,51 +163,53 @@ if __name__ == "__main__":
                     hello_robot.move_to_position(head_pan=head_pan,
                                             head_tilt=head_tilt + head_tilt_angles[tilt_retries])
                     tilt_retries += 1
-                
-            elif (retry_flag == 0):
-                retry_flag = False
             
             elif side_retries == 3:
                 print("No poses found in all retries")
 
-        # time.sleep(0.7)
-        # # Getting final translation, rotation of gripper
-        # translation, rotation, depth, cropped = image_publisher.publish_image(args.picking_object, head_tilt=head_tilt)
-        point = PyKDL.Vector(-translation[1], -translation[0], translation[2])
-        #point = PyKDL.Vector(translation[1], -translation[0], translation[2])
-        
-        # Rotation from model frame to pose frame
-        rotation1 = PyKDL.Rotation(rotation[0][0], rotation[0][1], rotation[0][2],
-                                   rotation[1][0],  rotation[1][1], rotation[1][2],
-                                    rotation[2][0],  rotation[2][1], rotation[2][2])
+        if args.mode == "place":
+            point = PyKDL.Vector(translation[0], -translation[1], -translation[2])
 
-        # Rotation from camera frame to model frame
-        rotation1_bottom = PyKDL.Rotation(0.0000000, -1.0000000,  0.0000000,
-                                    -1.0000000,  0.0000000,  0.0000000, 
-                                    0.0000000,  0.0000000, 1.0000000)
-        
-        # 
-        gripper_yaw = math.atan(rotation[1][0]/rotation[0][0])
-        print(f"gripper_yaw - {gripper_yaw}")
+            rotation = PyKDL.Rotation(1, 0, 0, 0, 1, 0, 0, 0, 1)
+
+        if args.mode == "pick":
+            # time.sleep(0.7)
+            # # Getting final translation, rotation of gripper
+            # translation, rotation, depth, cropped = image_publisher.publish_image(args.picking_object, head_tilt=head_tilt)
+            point = PyKDL.Vector(-translation[1], -translation[0], translation[2])
+            #point = PyKDL.Vector(translation[1], -translation[0], translation[2])
+            
+            # Rotation from model frame to pose frame
+            rotation1 = PyKDL.Rotation(rotation[0][0], rotation[0][1], rotation[0][2],
+                                    rotation[1][0],  rotation[1][1], rotation[1][2],
+                                        rotation[2][0],  rotation[2][1], rotation[2][2])
+
+            # Rotation from camera frame to model frame
+            rotation1_bottom = PyKDL.Rotation(0.0000000, -1.0000000,  0.0000000,
+                                        -1.0000000,  0.0000000,  0.0000000, 
+                                        0.0000000,  0.0000000, 1.0000000)
+            
+            # 
+            gripper_yaw = math.atan(rotation[1][0]/rotation[0][0])
+            print(f"gripper_yaw - {gripper_yaw}")
 
 
-        # Remove yaw from gripper rotation as we are rotating base
-        # rotation1_yaw = PyKDL.Rotation(math.cos(gripper_yaw), math.sin(gripper_yaw), 0,
-        #                                 -math.sin(gripper_yaw), math.cos(gripper_yaw), 0,
-        #                                 0, 0, 1) 
-        
-        print(f"Points frame rotation - {rotation1.GetRPY()}, {rotation1.GetEulerZYX()}")
-        print(rotation1)
+            # Remove yaw from gripper rotation as we are rotating base
+            # rotation1_yaw = PyKDL.Rotation(math.cos(gripper_yaw), math.sin(gripper_yaw), 0,
+            #                                 -math.sin(gripper_yaw), math.cos(gripper_yaw), 0,
+            #                                 0, 0, 1) 
+            
+            print(f"Points frame rotation - {rotation1.GetRPY()}, {rotation1.GetEulerZYX()}")
+            print(rotation1)
 
-        # Rotation from camera frame to pose frame
-        rotation =  rotation1_bottom * rotation1
-        print(rotation)
-        print(f"Camera frame rotation - {rotation.GetRPY()}, {rotation.GetEulerZYX()}")
+            # Rotation from camera frame to pose frame
+            rotation =  rotation1_bottom * rotation1
+            print(rotation)
+            print(f"Camera frame rotation - {rotation.GetRPY()}, {rotation.GetEulerZYX()}")
 
     dest_frame = PyKDL.Frame(rotation, point) 
     
     # Camera frame to gripper frame transformation
-    hello_robot.move_to_position(lift_pos = 1.0, head_pan = None, head_tilt = None)
     if args.transform and transform_node is not None:
 
         # transform - Rotation and translation from camera frame to gripper frame
@@ -221,7 +228,7 @@ if __name__ == "__main__":
     print("rotation: ", transformed_frame.M.GetRPY())
 
     #exit()
-    if args.mode == "move":
+    if args.mode == "move" or args.mode == "place":
         hello_robot.move_to_pose(
             [transformed_frame.p[0], transformed_frame.p[1], transformed_frame.p[2]],
             [0, 0, 0],
@@ -229,9 +236,12 @@ if __name__ == "__main__":
             [gripper_pos],
             move_mode=1
         )
-    elif args.mode == "pick":
 
-        # Rotation for aligning gripper frame to model pose frame
+    # elif args.mode == "place":
+
+    elif args.mode == "pick":
+        hello_robot.move_to_position(lift_pos = 1.0, head_pan = None, head_tilt = None)
+        # Rotation for aligning gripper frame   to model pose frame
         rotation2_top = PyKDL.Rotation(0, 0, 1, 1, 0, 0, 0, -1, 0)
         
         # final Rotation of gripper to hold the objet
@@ -261,8 +271,10 @@ if __name__ == "__main__":
             #     transformed_point1[2] -= (0.20 - depth)
             #     ref_diff = 0.245 - depth
             # else:
-            transformed_point1[2] -= (0.185)
-            ref_diff = 0.185
+
+            diff_value = 0.18
+            transformed_point1[2] -= (diff_value)
+            ref_diff = (diff_value)
             print("depth second loop")
             print(f"transformed point1 : {transformed_point1}")
         # print()
@@ -305,15 +317,13 @@ if __name__ == "__main__":
                 [0, 0, dist],   
                 [0, 0, 0],
                 # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
-                [gripper_pos],
-                velocities=velocities
+                [gripper_pos]
+                # velocities=velocities
             )
             time.sleep(1)
             transform, frame2, frame1 = hello_robot.get_joint_transform(base_node, transform_node)
             print(f"transformed point3 : {transform * point}")
             diff = diff - dist
-
-
 
         # exit()
         # hello_robot.move_to_pose(
