@@ -51,22 +51,26 @@ def recv_array(socket, flags=0, copy=True, track=False):
 
 class ImagePublisher():
 
-    def __init__(self, camera):
+    def __init__(self, camera, socket):
 
         self.camera = camera
 
         self.bridge = CvBridge()
-        context = zmq.Context()
-        self.socket = context.socket(zmq.REQ)
-        self.socket.connect("tcp://100.107.224.62:5556")
+        #context = zmq.Context()
+        #self.socket = context.socket(zmq.REQ)
+        #self.socket.connect("tcp://100.107.224.62:5556")
+        self.socket = socket
         #self.image_publisher = rospy.Publisher(IMAGE_PUBLISHER_NAME, Image, queue_size = 1)
         #self.depth_publisher = rospy.Publisher(DEPTH_PUBLISHER_NAME, Float32MultiArray, queue_size = 1)
         #self.image = None
         #self.depth = None
 
-    def publish_image(self, text, mode, head_tilt=-1):
+    def publish_image(self, text, mode, head_tilt=-1, top_down = False):
 
         image, depth, points = self.camera.capture_image()
+        #image, depth, points = self.camera.robot.head.get_images(compute_xyz = True)
+        camera_pose = self.camera.robot.head.get_pose_in_base_coords()
+        print(camera_pose)
 
         rotated_image = np.rot90(image, k=-1)
         rotated_depth = np.rot90(depth, k=-1)
@@ -81,8 +85,14 @@ class ImagePublisher():
         #print(self.socket.recv_string()) 
         #send_array(self.socket, np.array([self.camera.fy, self.camera.fx, 480 - self.camera.cy, self.camera.cx]))
         print(f"sending head_tilt - {head_tilt}")
-        send_array(self.socket, np.array([self.camera.fy, self.camera.fx, 480 - self.camera.cy, self.camera.cx, int(head_tilt*100)]))
+        #send_array(self.socket, np.array([self.camera.fy, self.camera.fx, 480 - self.camera.cy, self.camera.cx, int(head_tilt*100)]))
+        send_array(self.socket, np.array([self.camera.fy, self.camera.fx, self.camera.cy, self.camera.cx, int(head_tilt*100)]))
         print(self.socket.recv_string())
+        if top_down:
+            #send_array(self.socket, points)
+            #print(self.socket.recv_string())
+            send_array(self.socket, camera_pose)
+            print(self.socket.recv_string())
         self.socket.send_string(text)
         print(self.socket.recv_string())
         self.socket.send_string(mode)

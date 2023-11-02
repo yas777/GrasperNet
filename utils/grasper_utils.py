@@ -21,25 +21,32 @@ def move_to_point(robot, point, base_node, gripper_node):
             move_mode=1
         )
 
-def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height = 0.03, gripper_depth=0.03):
+def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height = 0.03, gripper_depth=0.03, top_down = False):
     """
         rotation: Relative rotation of gripper pose w.r.t camera
         translation: Relative translation of gripper pose w.r.t camera
         cam2gripper_transform: Transform for 
     """
+    if top_down:
+        point = PyKDL.Vector(translation[1], -translation[0], translation[2])
 
-    point = PyKDL.Vector(-translation[1], -translation[0], translation[2])
+        rotation1_bottom = PyKDL.Rotation(0.0000000, 1.0000000,  0.0000000,
+                                -1.0000000,  0.0000000,  0.0000000, 
+                                0.0000000,  0.0000000, 1.0000000)
+    else:
+        point = PyKDL.Vector(-translation[1], -translation[0], translation[2])
+
+        # Rotation from camera frame to model frame
+        rotation1_bottom = PyKDL.Rotation(0.0000000, -1.0000000,  0.0000000,
+                                    -1.0000000,  0.0000000,  0.0000000, 
+                                    0.0000000,  0.0000000, 1.0000000)
 
     # Rotation from model frame to pose frame
     rotation1 = PyKDL.Rotation(rotation[0][0], rotation[0][1], rotation[0][2],
                             rotation[1][0],  rotation[1][1], rotation[1][2],
                                 rotation[2][0],  rotation[2][1], rotation[2][2])
     
-    # Rotation from camera frame to model frame
-    rotation1_bottom = PyKDL.Rotation(0.0000000, -1.0000000,  0.0000000,
-                                -1.0000000,  0.0000000,  0.0000000, 
-                                0.0000000,  0.0000000, 1.0000000)
-    
+
     # Rotation from camera frame to pose frame
     rotation =  rotation1_bottom * rotation1
 
@@ -54,11 +61,15 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
     robot.move_to_position(lift_pos = 1.0, head_pan = None, head_tilt = None)
 
     # Rotation for aligning gripper frame   to model pose frame
-    rotation2_top = PyKDL.Rotation(0, 0, 1, 1, 0, 0, 0, -1, 0)
+    if top_down:
+        rotation2_top = PyKDL.Rotation(1, 0, 0, 0, 1, 0, 0, 0, 1)
+    else:
+        rotation2_top = PyKDL.Rotation(0, 0, 1, 1, 0, 0, 0, -1, 0)
 
     # final Rotation of gripper to hold the objet
     final_rotation = transformed_frame.M * rotation2_top
-
+    
+    print(f"final rotation - {final_rotation.GetRPY()}")
     robot.move_to_pose(
             [0, 0, 0],
             [final_rotation.GetRPY()[0], final_rotation.GetRPY()[1], final_rotation.GetRPY()[2]],
@@ -111,8 +122,8 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
             [0, 0, dist],   
             [0, 0, 0],
             # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
-            [1]
-            # velocities=velocities
+            [1],
+            velocities=velocities
         )
         time.sleep(1)
         transform, frame2, frame1 = robot.get_joint_transform(base_node, gripper_node)
@@ -120,12 +131,23 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
         diff = diff - dist
     
     robot.pickup(abs(0))
-        # Put it down for now
-    time.sleep(3)
-    robot.move_to_position(lift_pos = 1.0, arm_pos = 0)
+    robot.move_to_position(lift_pos = 1.1)
+    time.sleep(5)
+
+    # Put it down for now
+    robot.move_to_position(gripper_pos = 1)
+    robot.move_to_position(arm_pos = 0)
+    #robot.move_to_position(lift_pos = 1.1)  
     robot.move_to_position(wrist_pitch = -1.57, 
                             wrist_yaw = 0,
                             wrist_roll = 0)
-    robot.move_to_position(lift_pos = 0.35)
+
+    # # Shift back to the original point
+    # hello_robot.move_to_position(base_trans = -hello_robot.robot.manip.get_joint_positions()[0])
+    # robot.move_to_position(lift_pos = 1.0, arm_pos = 0)
+    # robot.move_to_position(wrist_pitch = -1.57, 
+    #                         wrist_yaw = 0,
+    #                         wrist_roll = 0)
+    # robot.move_to_position(lift_pos = 0.35)
 
 

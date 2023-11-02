@@ -31,7 +31,8 @@ def publisher_process(robot):
     publisher = JointStatePublisher(robot)
     publisher.publish()
 
-def capture_and_process_image(camera, args):
+def capture_and_process_image(camera, args, socket, hello_robot, top_down = False):
+    print(args.mode)
     # point selector
     if args.mode == "move":
         # Image Capturing 
@@ -52,16 +53,17 @@ def capture_and_process_image(camera, args):
     
         return rotation, point
 
+    print(args.picking_object)
     if args.mode == "pick" or args.mode == "place":
+        print("hello")
         if args.mode == "pick":
             obj = args.picking_object
         else:
             obj = args.placing_object
 
-        image_publisher = ImagePublisher(camera)
+        image_publisher = ImagePublisher(camera, socket)
 
         # Centering the object
-        # args.picking_object = 'green bottle'
         head_tilt_angles = [0.1, -0.1]
         tilt_retries, side_retries = 0, 0
         retry_flag = True
@@ -69,7 +71,7 @@ def capture_and_process_image(camera, args):
         head_pan = INIT_HEAD_PAN
 
         while(retry_flag):
-            translation, rotation, depth, cropped, retry_flag = image_publisher.publish_image(obj, args.mode, head_tilt=head_tilt)
+            translation, rotation, depth, cropped, retry_flag = image_publisher.publish_image(obj, args.mode, head_tilt=head_tilt, top_down = top_down)
 
             print(f"retry flag : {retry_flag}")
             if (retry_flag == 1):
@@ -101,11 +103,12 @@ def capture_and_process_image(camera, args):
             
             elif side_retries == 3:
                 print("No poses found in all retries")
+                time.sleep(2)
 
         if args.mode == "place":
             translation = PyKDL.Vector(translation[0], -translation[1], -translation[2])
 
-        return rotation, translation
+        return rotation, translation, depth
 
 
 if __name__ == "__main__":
@@ -178,15 +181,19 @@ if __name__ == "__main__":
 
     camera = RealSenseCamera(hello_robot.robot)
 
+    context = zmq.Context()
+    socket = context.socket(zmq.REQ)
+    socket.connect("tcp://100.107.224.62:5556")
+
     retry = True
     while retry:
-        rotation, translation = capture_and_process_image(camera, args)
+        rotation, translation, depth = capture_and_process_image(camera, args, socket, hello_robot)
 
         if args.mode == "move":
             move_to_point(hello_robot, translation, base_node, transform_node)
             retry = False
         elif args.mode == "pick":
-            pickup(hello_robot, rotation, translation, base_node, transform_node)
+            pickup(hello_robot, rotation, translation, base_node, transform_node, gripper_depth = depth)
             args.mode = "place"
         else:
             hello_robot.move_to_position(lift_pos=1)

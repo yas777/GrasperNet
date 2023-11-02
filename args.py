@@ -19,6 +19,9 @@ def get_args():
     parser.add_argument("-t", "--transform", 
                     action="store_true", 
                     help = "Boolean for transforming a input co-ordinates to another frame of reference")
+    parser.add_argument("-ip", "--ip", default = "100.107.224.62", help = "Workstation IP")
+    parser.add_argument("-np", "--navigation_port", default = 5555, type=int, help = "Navigation port")
+    parser.add_argument("-mp", "--manipulation_port", default = 5556, type=int, help = "Manipulation port")
     parser.add_argument("-tf", "--transform_node", 
                     choices = [ "gripper_camera", "top_camera", 
                                 "gripper_fingertip_left", "gripper_fingertip_right", 

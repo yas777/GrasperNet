@@ -286,11 +286,11 @@ class HelloRobot:
             target1 = [0 for _ in range(6)]
             target1[1] = target_state[1] - state[1]
             #self.robot.manip.goto_joint_positions(target1, velocities, relative=True)
-            self.robot.manip.goto_joint_positions(target1, relative=True)
+            self.robot.manip.goto_joint_positions(target1, relative=True, velocities=velocities)
             time.sleep(0.7)
 
-        #self.robot.manip.goto_joint_positions(target_state, velocities)
-        self.robot.manip.goto_joint_positions(target_state)
+        self.robot.manip.goto_joint_positions(target_state, velocities=velocities)
+        # self.robot.manip.goto_joint_positions(target_state)
         # self.robot.manip.goto(target_state, velocities)
         time.sleep(0.7)
         # time.sleep(2)
