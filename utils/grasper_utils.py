@@ -93,8 +93,6 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
     transformed_point1[2] -= (diff_value)
     ref_diff = (diff_value)
 
-    prev_base_x = robot.base_x
-    print(f"base distance before moving - {prev_base_x}")
     # Moving gripper to pose center 
     robot.move_to_pose(
         [transformed_point1.x(), transformed_point1.y(), transformed_point1.z() - 0.2],
@@ -104,10 +102,6 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
         move_mode = 1
     )
     time.sleep(4)
-
-    curr_base_x = robot.base_x
-    print(f"base distance after moving - {curr_base_x}")
-    # point[0] -= robot.base_x
 
     # transform, frame2, frame1 = robot.get_joint_transform(base_node, gripper_node)
     base2gripper_transform, _, _ = robot.get_joint_transform('base_link', gripper_node)
