@@ -314,7 +314,7 @@
     <child link="link_left_wheel"/>
     <dynamics damping="21.75" friction="10.48"/>
   </joint>
-    <link name="fake_link_x">
+  <link name="fake_link_x">
     <inertial>
       <origin rpy="0.0 0.0 0." xyz="0. 0. 0."/>
       <mass value="0.749143203376"/>

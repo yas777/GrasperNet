@@ -24,7 +24,7 @@ OVERRIDE_STATES = {}
 
 class HelloRobot:
 
-    def __init__(self, urdf_file = 'stretch5.urdf', stretch_client_urdf_file = 'hab_stretch/urdf', 
+    def __init__(self, urdf_file = 'stretch6.urdf', stretch_client_urdf_file = 'hab_stretch/urdf', 
     #def __init__(self, urdf_file = 'hab_stretch/urdf/stretch.urdf', stretch_client_urdf_file = 'hab_stretch/urdf',
             gripper_threshold = 7.0, stretch_gripper_max = 0.3, stretch_gripper_min = 0, end_link = GRIPPER_MID_NODE):
         self.STRETCH_GRIPPER_MAX = stretch_gripper_max
@@ -138,7 +138,7 @@ class HelloRobot:
         if not wrist_yaw is None:
             target_state[3] = wrist_yaw
         if not wrist_pitch is None:
-            target_state[4] = wrist_pitch
+            target_state[4] = min(wrist_pitch, 0.2)
         if not wrist_roll is None:
             target_state[5] = wrist_roll    
         
@@ -268,7 +268,7 @@ class HelloRobot:
         #WRIST_PITCH = 4
         #WRIST_ROLL = 5
         state = self.robot.manip.get_joint_positions()
-
+        joints['joint_wrist_pitch'] = self.clamp(joints['joint_wrist_pitch'], -1.57, 0)
         target_state = [
             joints['joint_fake'], 
             joints['joint_lift'],
@@ -280,6 +280,7 @@ class HelloRobot:
             joints['joint_wrist_pitch'],
             joints['joint_wrist_roll']]
 
+        print(f"wrist pitch -{joints['joint_wrist_pitch']}")
         # print(f"velocites: {velocities}")
         if mode:
             # Moving only the lift
@@ -289,6 +290,8 @@ class HelloRobot:
             self.robot.manip.goto_joint_positions(target1, relative=True, velocities=velocities)
             time.sleep(0.7)
 
+        print(f"current state {state}")
+        print(f"target state {target_state}")
         self.robot.manip.goto_joint_positions(target_state, velocities=velocities)
         # self.robot.manip.goto_joint_positions(target_state)
         # self.robot.manip.goto(target_state, velocities)
@@ -437,7 +440,7 @@ class HelloRobot:
         seed_array = PyKDL.JntArray(self.arm_chain.getNrOfJoints())
         # seed_array[self.arm_chain.getNrOfJoints()-1] = self.joint_array[self.arm_chain.getNrOfJoints() - 1]
         # print("seed array - ", seed_array)
-        print(seed_array, goal_pose_new)
+        # print(seed_array, goal_pose_new)
         self.ik_p_kdl.CartToJnt(seed_array, goal_pose_new, self.joint_array)
 
         ik_joints = {}

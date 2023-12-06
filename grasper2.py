@@ -10,6 +10,7 @@ from utils import potrait_to_landscape, segment_point_cloud, plane_detection, di
 from nodes import JointStatePublisher, Listener, ImagePublisher
 from utils.grasper_utils import pickup, move_to_point
 
+import zmq
 import time
 import rospy
 import cv2
@@ -31,7 +32,7 @@ def publisher_process(robot):
     publisher = JointStatePublisher(robot)
     publisher.publish()
 
-def capture_and_process_image(camera, args, socket, hello_robot, top_down = False):
+def capture_and_process_image(camera, args, socket, hello_robot, INIT_HEAD_TILT, top_down = False):
     print(args.mode)
     # point selector
     if args.mode == "move":
@@ -64,8 +65,8 @@ def capture_and_process_image(camera, args, socket, hello_robot, top_down = Fals
         image_publisher = ImagePublisher(camera, socket)
 
         # Centering the object
-        head_tilt_angles = [0.1, -0.1]
-        tilt_retries, side_retries = 0, 0
+        head_tilt_angles = [0, -0.1, 0.1]
+        tilt_retries, side_retries = 1, 0
         retry_flag = True
         head_tilt = INIT_HEAD_TILT
         head_pan = INIT_HEAD_PAN
@@ -81,32 +82,35 @@ def capture_and_process_image(camera, args, socket, hello_robot, top_down = Fals
                 hello_robot.move_to_position(base_trans=base_trans,
                                         head_pan=head_pan,
                                         head_tilt=head_tilt)
+                time.sleep(4)
             
-            elif (side_retries == 2 and tilt_retries == 2):
-                hello_robot.move_to_position(base_trans=0.15, head_tilt=head_tilt)
+            elif (side_retries == 2 and tilt_retries == 3):
+                hello_robot.move_to_position(base_trans=0.1, head_tilt=head_tilt)
                 side_retries = 3
 
             elif retry_flag == 2:
-                if (tilt_retries == 2):
+                if (tilt_retries == 3):
                     if (side_retries == 0):
-                        hello_robot.move_to_position(base_trans=0.15, head_tilt=head_tilt)
+                        hello_robot.move_to_position(base_trans=0.1, head_tilt=head_tilt_angles[0])
                         side_retries = 1
                     else:
-                        hello_robot.move_to_position(base_trans=-0.3, head_tilt=head_tilt)
+                        hello_robot.move_to_position(base_trans=-0.2, head_tilt=head_tilt_angles[0])
                         side_retries = 2
-                    tilt_retries = 0
+                    tilt_retries = 1
                 else:
                     print(f"retrying with head tilt : {head_tilt + head_tilt_angles[tilt_retries]}")
                     hello_robot.move_to_position(head_pan=head_pan,
                                             head_tilt=head_tilt + head_tilt_angles[tilt_retries])
                     tilt_retries += 1
+                    time.sleep(1)
             
             elif side_retries == 3:
                 print("No poses found in all retries")
                 time.sleep(2)
+            
 
         if args.mode == "place":
-            translation = PyKDL.Vector(translation[0], -translation[1], -translation[2])
+            translation = PyKDL.Vector(-translation[1], -translation[0], -translation[2])
 
         return rotation, translation, depth
 

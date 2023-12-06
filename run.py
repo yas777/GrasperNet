@@ -38,11 +38,11 @@ from grasper2 import capture_and_process_image
 POS_TOL = 0.1
 YAW_TOL = 0.2
 
-X_OFFSET = 0.044012 
-Y_OFFSET = 0.962336
+X_OFFSET = 0.121487
+Y_OFFSET = 0.024106
 # x1 = X_OFFSET, x2 = another x
 # THETA_OFFSET =  np.arctan2((x2 - x1), (y2 - y1))
-THETA_OFFSET = 1.5847136891152713
+THETA_OFFSET = -3.1405233005802735
 
 r2n_matrix = \
     np.array([
@@ -73,10 +73,10 @@ def navigate(robot, xyt_goal):
     while xyt_goal[2] < -np.pi or xyt_goal[2] > np.pi:
         xyt_goal[2] = xyt_goal[2] + 2 * np.pi if xyt_goal[2] < -np.pi else xyt_goal[2] - 2 * np.pi
     while True:
-        robot.nav.navigate_to(xyt_goal)
+        robot.nav.navigate_to(xyt_goal, blocking = False)
         xyt_curr = robot.nav.get_base_pose()
         print("The robot currently loactes at " + str(xyt_curr))
-        time.sleep(0.5)
+        #time.sleep(0.5)
         if np.allclose(xyt_curr[:2], xyt_goal[:2], atol=POS_TOL) and \
                 (np.allclose(xyt_curr[2], xyt_goal[2], atol=YAW_TOL)\
                  or np.allclose(xyt_curr[2], xyt_goal[2] + np.pi * 2, atol=YAW_TOL)\
@@ -137,28 +137,42 @@ def run_navigation(robot, socket):
     socket.send_string("Waiting for path")
     paths = recv_array(socket)
     print(paths)
-    for path in paths:
-        transformed_path = n2r_matrix @ np.array([path[0], path[1], 1])
-        #path[0], path[1] = transformed_path[0], transformed_path[1]
-        transformed_path[2] = path[2] - THETA_OFFSET
-        #path = (path[0] - X_OFFSET, path[1] - Y_OFFSET, path[2] - THETA_OFFSET)
-        print(transformed_path)
-    print('\n\n\n\n\n\n')
-    for path in paths:
-        transformed_path = n2r_matrix @ np.array([path[0], path[1], 1])
-        #path[0], path[1] = transformed_path[0], transformed_path[1]
-        transformed_path[2] = path[2] - THETA_OFFSET
-        #path = (path[0] - X_OFFSET, path[1] - Y_OFFSET, path[2] - THETA_OFFSET)
-        print(transformed_path)
-        navigate(robot, transformed_path)
     socket.send_string("Path received")
-    move_range = recv_array(socket)
-    print(move_range)
+    #move_range = recv_array(socket)
+    end_xyz = recv_array(socket)
+    z = end_xyz[2]
+    end_xyz = (n2r_matrix @ np.array([end_xyz[0], end_xyz[1], 1]))
+    end_xyz[2] = z
+
+    if input("Start navigation? Y or N ") == 'N':
+        return A, end_xyz
+    
+    # Let the robot run faster
+    robot.nav.set_velocity(v = 20, w = 15)
+
+    final_paths = []
+    for path in paths:
+        transformed_path = n2r_matrix @ np.array([path[0], path[1], 1])
+        #path[0], path[1] = transformed_path[0], transformed_path[1]
+        transformed_path[2] = path[2] - THETA_OFFSET
+        #path = (path[0] - X_OFFSET, path[1] - Y_OFFSET, path[2] - THETA_OFFSET)
+        print(transformed_path)
+        final_paths.append(transformed_path)
+        navigate(robot, transformed_path)
     xyt = robot.nav.get_base_pose()
     xyt[2] = xyt[2] + np.pi / 2
-    print(xyt)
     navigate(robot, xyt)
-    return A, move_range
+    # last_waypoint = np.copy(final_paths[-1])
+    # last_waypoint[2] += np.pi / 2
+    # final_paths.append(last_waypoint)
+    # print(last_waypoint)
+    # robot.nav.execute_trajectory(
+    #     final_paths, 
+    #     pos_err_threshold = POS_TOL, 
+    #     #rot_err_threshold = YAW_TOL, 
+    #     per_waypoint_timeout = 30)
+    #robot.wait_for_waypoints(xyt, pos_err_threshold = POS_TOL, rot_err_threshold = YAW_TOL, timeout = 50)
+    return A, end_xyz
 
 def run_manipulation(args, hello_robot, socket, text, transform_node, base_node, move_range = [False, False], top_down = False):
     
@@ -175,15 +189,19 @@ def run_manipulation(args, hello_robot, socket, text, transform_node, base_node,
                                 wrist_pitch = global_parameters.INIT_WRIST_PITCH,
                                 wrist_roll = INIT_WRIST_ROLL,
                                 wrist_yaw = INIT_WRIST_YAW)
-    time.sleep(1)
+    time.sleep(2)
 
     camera = RealSenseCamera(hello_robot.robot)
 
     args.mode = 'pick'
     args.picking_object = text
-    rotation, translation, depth = capture_and_process_image(camera, args, socket, hello_robot, top_down = top_down)
+    rotation, translation, depth = capture_and_process_image(camera, args, socket, hello_robot, INIT_HEAD_TILT, top_down = top_down)
 
-    pickup(hello_robot, rotation, translation, base_node, transform_node, top_down = top_down, gripper_depth = depth)
+    if input('Do you want to do this manipulation? Y or N ') != 'N':
+        pickup(hello_robot, rotation, translation, base_node, transform_node, top_down = top_down, gripper_depth = depth)
+
+    # Shift back to the original point
+    hello_robot.move_to_position(base_trans = -hello_robot.robot.manip.get_joint_positions()[0])
 
     # gripper_pos = 1
     # global_parameters.INIT_WRIST_PITCH = -1.57
@@ -344,37 +362,54 @@ def run_manipulation(args, hello_robot, socket, text, transform_node, base_node,
     # hello_robot.move_to_position(lift_pos = 1.1)
     # hello_robot.move_to_position(wrist_pitch = global_parameters.INIT_WRIST_PITCH)
 
-    # # Shift back to the original point
-    # hello_robot.move_to_position(base_trans = -hello_robot.robot.manip.get_joint_positions()[0])
-
-def run_place(args, hello_robot, socket, text, image_publisher, transform_node, base_node, move_range = [False, False]):
+def run_place(args, hello_robot, socket, text, transform_node, base_node, move_range = [False, False], top_down = False):
     
-    gripper_pos = 1
+    # gripper_pos = 1
 
-    print(INIT_ARM_POS, INIT_WRIST_PITCH, INIT_WRIST_ROLL, INIT_WRIST_YAW, gripper_pos)
-    hello_robot.move_to_position(arm_pos=INIT_ARM_POS,
-                                head_pan=INIT_HEAD_PAN,
-                                head_tilt=INIT_HEAD_TILT,
-                                gripper_pos = gripper_pos)
-    time.sleep(1)
+    # print(INIT_ARM_POS, INIT_WRIST_PITCH, INIT_WRIST_ROLL, INIT_WRIST_YAW, gripper_pos)
+    # hello_robot.move_to_position(arm_pos=INIT_ARM_POS,
+    #                             head_pan=INIT_HEAD_PAN,
+    #                             head_tilt=INIT_HEAD_TILT,
+    #                             gripper_pos = gripper_pos)
+    # time.sleep(1)
     
-    hello_robot.move_to_position(lift_pos=INIT_LIFT_POS,
-                                wrist_pitch = global_parameters.INIT_WRIST_PITCH,
-                                wrist_roll = INIT_WRIST_ROLL,
-                                wrist_yaw = INIT_WRIST_YAW)
-    time.sleep(1)
+    # hello_robot.move_to_position(lift_pos=INIT_LIFT_POS,
+    #                             wrist_pitch = global_parameters.INIT_WRIST_PITCH,
+    #                             wrist_roll = INIT_WRIST_ROLL,
+    #                             wrist_yaw = INIT_WRIST_YAW)
+    # time.sleep(2)
 
     camera = RealSenseCamera(hello_robot.robot)
 
-    arg.mode = 'place'
+    args.mode = 'place'
     args.placing_object = text
-    rotation, translation = capture_and_process_image(camera, args, socket, hello_robot)
+    rotation, translation, _ = capture_and_process_image(camera, args, socket, hello_robot, INIT_HEAD_TILT, top_down = top_down)
 
-    hello_robot.move_to_position(lift_pos=1)
-    hello_robot.move_to_position(wrist_pitch=0)
+    hello_robot.move_to_position(lift_pos=1.1)
+    time.sleep(1)
+    hello_robot.move_to_position(wrist_yaw=0,
+                                 wrist_pitch=0)
+    time.sleep(1)
+    # hello_robot.move_to_position(wrist_yaw=0)
+    #hello_robot.move_to_position(lift_pos=1.1)
+    # hello_robot.move_to_position(wrist_pitch=0)
+    time.sleep(1)
     move_to_point(hello_robot, translation, base_node, transform_node)
-    hello_robot.move_to_position(gripper_pos=1)
+    time.sleep(4)
+    hello_robot.move_to_position(gripper_pos=1, 
+                                lift_pos = 1.1,
+                                arm_pos = 0)
+    time.sleep(4)
+    #hello_robot.move_to_position(wrist_pitch=-1.57, arm_pos = 0)
+    #if abs(robot.robot.manip.get_joint_positions()[3] - 2.5) > 0.1:
+    #    hello_robot.move_to_position(wrist_yaw  = - 2.5)
+    # hello_robot.move_to_position(lift_pos=1.1)
+    # hello_robot.move_to_position(arm_pos=0)
+    hello_robot.move_to_position(wrist_pitch=-1.57)
 
+def compute_tilt(camera_xyz, target_xyz):
+    vector = camera_xyz - target_xyz
+    return -np.arctan2(vector[2], np.linalg.norm(vector[:2]))
 
 def run():
     hello_robot = HelloRobot()
@@ -421,21 +456,47 @@ def run():
     #manip_socket.connect("tcp://172.24.71.253:5556")
 
     while True:
-        # hello_robot.robot.switch_to_navigation_mode()
-        # hello_robot.robot.move_to_post_nav_posture()
-        # hello_robot.robot.head.look_front()
-        # A, move_range = run_navigation(hello_robot.robot, nav_socket)
-        A = 'blue bottle'
-        move_range = [True, True]
-        time.sleep(1.5)
+        hello_robot.robot.switch_to_navigation_mode()
+        hello_robot.robot.move_to_post_nav_posture()
+        hello_robot.robot.head.look_front()
+        A, end_xyz = run_navigation(hello_robot.robot, nav_socket)
+        camera_xyz = hello_robot.robot.head.get_pose()[:3, 3]
+        INIT_HEAD_TILT = compute_tilt(camera_xyz, end_xyz)
+
+        #xyt = hello_robot.robot.nav.get_base_pose()
+        #xyt[2] = xyt[2] + np.pi / 2
+        #print('\n\n\n\n\n debug')
+        #time.sleep(5)
+        #navigate(hello_robot.robot, xyt)
+        A = "printed paper cup"
         if input("You want to run manipulation? Y or N ") == 'N':
             continue
+        
         hello_robot.robot.switch_to_manipulation_mode()
-        hello_robot.robot.move_to_manip_posture()
         hello_robot.robot.head.look_at_ee()
-        # run_manipulation(args, hello_robot, anygrasp_socket, A, transform_node, base_node, move_range)
-        run_manipulation(args, hello_robot, anygrasp_open_socket, A, transform_node, base_node, move_range)
-        # run_manipulation(args, hello_robot, topdown_socket, A, transform_node, base_node, move_range, top_down = True)
+        run_manipulation(args, hello_robot, anygrasp_socket, A, transform_node, base_node)
+        #run_manipulation(args, hello_robot, anygrasp_open_socket, A, transform_node, base_node, move_range)
+        #run_manipulation(args, hello_robot, topdown_socket, A, transform_node, base_node, move_range, top_down = True)
+        hello_robot.robot.switch_to_navigation_mode()
+        # hello_robot.robot.move_to_post_nav_posture()
+        if input("You want to run navigation? Y or N") == 'N':
+            continue
+        hello_robot.robot.head.look_front()
+        A, end_xyz = run_navigation(hello_robot.robot, nav_socket)
+        camera_xyz = hello_robot.robot.head.get_pose()[:3, 3]
+        INIT_HEAD_TILT = compute_tilt(camera_xyz, end_xyz)
+
+        #xyt = hello_robot.robot.nav.get_base_pose()
+        #xyt[2] = xyt[2] + np.pi / 2
+        #navigate(hello_robot.robot, xyt)
+        if input("You want to run place? Y or N") == 'N':
+            continue
+        #A = "red basket"
+        hello_robot.robot.switch_to_manipulation_mode()
+        # hello_robot.robot.move_to_manip_posture()
+        hello_robot.robot.head.look_at_ee()
+        run_place(args, hello_robot, anygrasp_socket, A, transform_node, base_node)
+        time.sleep(3)
 
 if __name__ == '__main__':
     run()
