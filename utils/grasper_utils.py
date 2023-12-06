@@ -62,7 +62,7 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
 
     # Lifting the arm to high position
     robot.move_to_position(lift_pos = 1.1, head_pan = None, head_tilt = None)
-    time.sleep(1)
+    time.sleep(2)
 
     # Rotation for aligning gripper frame   to model pose frame
     if top_down:
@@ -72,26 +72,30 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
 
     # final Rotation of gripper to hold the objet
     final_rotation = transformed_frame.M * rotation2_top
-    
+
     print(f"final rotation - {final_rotation.GetRPY()}")
     robot.move_to_pose(
             [0, 0, 0],
             [final_rotation.GetRPY()[0], final_rotation.GetRPY()[1], final_rotation.GetRPY()[2]],
             [1],
         )
-    time.sleep(1)
-    
+    time.sleep(2)
+
+    cam2base_transform, _, _ = robot.get_joint_transform(base_node, 'base_link')
     cam2gripper_transform, _, _ = robot.get_joint_transform(base_node, gripper_node)
 
     transformed_point1 = cam2gripper_transform * point
-    print(f"transform1 {cam2gripper_transform}")
+    base_point = cam2base_transform * point
+    # print(f"transform1 {cam2gripper_transform}")
     print(f"transformed point1 - {transformed_point1}")
 
     diff_value = (0.228 - gripper_depth - gripper_height)
     transformed_point1[2] -= (diff_value)
     ref_diff = (diff_value)
 
-    # Moving gripper to pose center
+    prev_base_x = robot.base_x
+    print(f"base distance before moving - {prev_base_x}")
+    # Moving gripper to pose center 
     robot.move_to_pose(
         [transformed_point1.x(), transformed_point1.y(), transformed_point1.z() - 0.2],
         [0, 0, 0],
@@ -101,10 +105,15 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
     )
     time.sleep(4)
 
-    transform, frame2, frame1 = robot.get_joint_transform(base_node, gripper_node)
-    transformed_point2 = transform * point
-    print(f"transform 2 {transform}")
-    print(f"transformed point2 : {transform * point}")
+    curr_base_x = robot.base_x
+    print(f"base distance after moving - {curr_base_x}")
+    # point[0] -= robot.base_x
+
+    # transform, frame2, frame1 = robot.get_joint_transform(base_node, gripper_node)
+    base2gripper_transform, _, _ = robot.get_joint_transform('base_link', gripper_node)
+    transformed_point2 = base2gripper_transform * base_point
+    # print(f"transform 2 {transform}")
+    print(f"transformed point2 : {transformed_point2}")
     curr_diff = transformed_point2.z()
 
     diff = abs(curr_diff - ref_diff)
@@ -120,8 +129,10 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
             [1]
         )
         time.sleep(2)
-        transform, frame2, frame1 = robot.get_joint_transform(base_node, gripper_node)
-        print(f"transformed point3 : {transform * point}")
+        # transform, frame2, frame1 = robot.get_joint_transform(base_node, gripper_node)
+        base2gripper_transform, _, _ = robot.get_joint_transform('base_link', gripper_node)
+        # print(f"transformed point3 : {transform * point}")
+        print(f"transformed point3 : {base2gripper_transform * base_point}")
         diff = diff - dist
         
     while diff > 0.01:
@@ -134,13 +145,15 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
             velocities=velocities
         )
         time.sleep(2)
-        transform, frame2, frame1 = robot.get_joint_transform(base_node, gripper_node)
-        print(f"transformed point3 : {transform * point}")
+        # transform, frame2, frame1 = robot.get_joint_transform(base_node, gripper_node)
+        base2gripper_transform, _, _ = robot.get_joint_transform('base_link', gripper_node)
+        # print(f"transformed point3 : {transform * point}")
+        print(f"transformed point3 : {base2gripper_transform * base_point}")
         diff = diff - dist
     
     robot.pickup(abs(0))
     robot.move_to_position(lift_pos = 1.1)
-    time.sleep(1)
+    time.sleep(2)
     #time.sleep(5)
 
     # Put it down for now
@@ -154,11 +167,11 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
     # # Shift back to the original point
     # robot.move_to_position(base_trans = -robot.manip.get_joint_positions()[0])
     robot.move_to_position(arm_pos = 0)
-    time.sleep(1)
-    robot.move_to_position(wrist_pitch  = 0.0, arm_pos = 0)
-    time.sleep(1)
+    time.sleep(2)
+    robot.move_to_position(wrist_pitch = 0.0, arm_pos = 0)
+    time.sleep(2)
     robot.move_to_position(wrist_yaw  = 2.5, arm_pos = 0)
-    time.sleep(1)
+    time.sleep(2)
     if abs(robot.robot.manip.get_joint_positions()[3] - 2.5) > 0.1:
         robot.move_to_position(wrist_yaw  = - 2.5)
         time.sleep(1)
@@ -170,7 +183,7 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
     #     p = (cur_pitch * (5 - i) - 1.57 * i) / 5
     #     robot.move_to_position(wrist_pitch = p)
     # robot.move_to_position(wrist_yaw = 0)
-    robot.move_to_position(lift_pos = 0.3)
+    robot.move_to_position(lift_pos = 0.6)
     time.sleep(1)
 
 

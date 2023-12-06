@@ -7,7 +7,7 @@ GRIPPER_MID_NODE = "link_straight_gripper"
 # GRIPPER_MID_NODE = "link_grasp_center"
 GRIPPER_FINGERTIP_RIGHT_NODE = "link_gripper_fingertip_right"
 
-INIT_LIFT_POS = 0.3 #
+INIT_LIFT_POS = 0.33 #
 INIT_WRIST_PITCH = 0 # -1.57 # for top-down picks(tdp) and 0 for normal picks(np)
 INIT_ARM_POS = 0
 INIT_WRIST_ROLL = 0

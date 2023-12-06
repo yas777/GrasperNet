@@ -138,7 +138,7 @@ class HelloRobot:
         if not wrist_yaw is None:
             target_state[3] = wrist_yaw
         if not wrist_pitch is None:
-            target_state[4] = min(wrist_pitch, 0.2)
+            target_state[4] = min(wrist_pitch, 0.1)
         if not wrist_roll is None:
             target_state[5] = wrist_roll    
         
@@ -268,7 +268,7 @@ class HelloRobot:
         #WRIST_PITCH = 4
         #WRIST_ROLL = 5
         state = self.robot.manip.get_joint_positions()
-        joints['joint_wrist_pitch'] = self.clamp(joints['joint_wrist_pitch'], -1.57, 0)
+        joints['joint_wrist_pitch'] = self.clamp(joints['joint_wrist_pitch'], -1.57, 0.1)
         target_state = [
             joints['joint_fake'], 
             joints['joint_lift'],
@@ -363,7 +363,6 @@ class HelloRobot:
             # print(f"{ref_joint1_list[joint_index]} - {joint_array1[joint_index]}")
 
         for joint_index in range(joint_array2.rows()):
-            print(joint_index, self.joint_list[joint_index], self.joints[self.joint_list[joint_index]])
             joint_array2[joint_index] = self.joints[self.joint_list[joint_index]]
             # print(f"{self.joint_list[joint_index]} - {joint_array2[joint_index]}")
         # joint_array2[joint_array2.rows() - 1] = joint_array2[joint_array2.rows() - 1]/2

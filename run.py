@@ -38,11 +38,11 @@ from grasper2 import capture_and_process_image
 POS_TOL = 0.1
 YAW_TOL = 0.2
 
-X_OFFSET = 0.447679
-Y_OFFSET = -0.032573
+X_OFFSET = 0.241888
+Y_OFFSET = -0.160611
 # x1 = X_OFFSET, x2 = another x
 # THETA_OFFSET =  np.arctan2((x2 - x1), (y2 - y1))
-THETA_OFFSET = -2.5850274327013945
+THETA_OFFSET = 0.5565652208883989
 
 r2n_matrix = \
     np.array([
@@ -153,10 +153,10 @@ def run_navigation(robot, socket, A, B):
     end_xyz[2] = z
 
     if input("Start navigation? Y or N ") == 'N':
-        return A, end_xyz
+        return None
     
     # Let the robot run faster
-    robot.nav.set_velocity(v = 20, w = 15)
+    robot.nav.set_velocity(v = 25, w = 20)
 
     final_paths = []
     for path in paths:
@@ -471,9 +471,10 @@ def run():
             hello_robot.robot.switch_to_navigation_mode()
             hello_robot.robot.move_to_post_nav_posture()
             hello_robot.robot.head.look_front()
-            A, end_xyz = run_navigation(hello_robot.robot, nav_socket, A, B)
-            camera_xyz = hello_robot.robot.head.get_pose()[:3, 3]
-            INIT_HEAD_TILT = compute_tilt(camera_xyz, end_xyz)
+            end_xyz = run_navigation(hello_robot.robot, nav_socket, A, B)
+            if not end_xyz is None:
+                camera_xyz = hello_robot.robot.head.get_pose()[:3, 3]
+                INIT_HEAD_TILT = compute_tilt(camera_xyz, end_xyz)
 
         #xyt = hello_robot.robot.nav.get_base_pose()
         #xyt[2] = xyt[2] + np.pi / 2
@@ -491,15 +492,15 @@ def run():
             #run_manipulation(args, hello_robot, topdown_socket, A, transform_node, base_node, move_range, top_down = True)
         
         if input("You want to run navigation? Y or N") != "N":
-            if (A is None):
-                A, _ = read_input()
+            A, B = read_input()
 
             hello_robot.robot.switch_to_navigation_mode()
             # hello_robot.robot.move_to_post_nav_posture()
             hello_robot.robot.head.look_front()
-            A, end_xyz = run_navigation(hello_robot.robot, nav_socket)
-            camera_xyz = hello_robot.robot.head.get_pose()[:3, 3]
-            INIT_HEAD_TILT = compute_tilt(camera_xyz, end_xyz)
+            end_xyz = run_navigation(hello_robot.robot, nav_socket, A, B)
+            if not end_xyz is None:
+                camera_xyz = hello_robot.robot.head.get_pose()[:3, 3]
+                INIT_HEAD_TILT = compute_tilt(camera_xyz, end_xyz)
 
         #xyt = hello_robot.robot.nav.get_base_pose()
         #xyt[2] = xyt[2] + np.pi / 2
@@ -511,7 +512,7 @@ def run():
             # hello_robot.robot.move_to_manip_posture()
             hello_robot.robot.head.look_at_ee()
             run_place(args, hello_robot, anygrasp_socket, A, transform_node, base_node)
-        time.sleep(3)
+        time.sleep(1)
 
 if __name__ == '__main__':
     run()
