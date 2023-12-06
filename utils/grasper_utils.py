@@ -119,7 +119,7 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
             # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
             [1]
         )
-        time.sleep(4)
+        time.sleep(2)
         transform, frame2, frame1 = robot.get_joint_transform(base_node, gripper_node)
         print(f"transformed point3 : {transform * point}")
         diff = diff - dist
@@ -133,7 +133,7 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
             [1],
             velocities=velocities
         )
-        time.sleep(4)
+        time.sleep(2)
         transform, frame2, frame1 = robot.get_joint_transform(base_node, gripper_node)
         print(f"transformed point3 : {transform * point}")
         diff = diff - dist

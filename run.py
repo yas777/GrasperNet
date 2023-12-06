@@ -38,11 +38,11 @@ from grasper2 import capture_and_process_image
 POS_TOL = 0.1
 YAW_TOL = 0.2
 
-X_OFFSET = 0.121487
-Y_OFFSET = 0.024106
+X_OFFSET = 0.447679
+Y_OFFSET = -0.032573
 # x1 = X_OFFSET, x2 = another x
 # THETA_OFFSET =  np.arctan2((x2 - x1), (y2 - y1))
-THETA_OFFSET = -3.1405233005802735
+THETA_OFFSET = -2.5850274327013945
 
 r2n_matrix = \
     np.array([
@@ -112,7 +112,15 @@ def recv_array(socket, flags=0, copy=True, track=False):
     A = np.frombuffer(msg, dtype=md['dtype'])
     return A.reshape(md['shape'])
 
-def run_navigation(robot, socket):
+def read_input():
+    A = str(input("Enter A: "))
+    print("A = ", A)
+    B = str(input("Enter B: "))
+    print("B = ", B)
+
+    return A, B
+
+def run_navigation(robot, socket, A, B):
     # Reset robot
     #print("Resetting robot...")
     #robot.reset()
@@ -124,10 +132,10 @@ def run_navigation(robot, socket):
     start_xy[0], start_xy[1] = transformed_start_xy[0], transformed_start_xy[1]
     start_xy[2] += THETA_OFFSET
     print(start_xy)
-    A = str(input("Enter A: "))
-    print("A = ", A)
-    B = str(input("Enter B: "))
-    print("B = ", B)
+    # A = str(input("Enter A: "))
+    # print("A = ", A)
+    # B = str(input("Enter B: "))
+    # print("B = ", B)
     send_array(socket, start_xy)
     print(socket.recv_string())
     socket.send_string(A)
@@ -172,7 +180,7 @@ def run_navigation(robot, socket):
     #     #rot_err_threshold = YAW_TOL, 
     #     per_waypoint_timeout = 30)
     #robot.wait_for_waypoints(xyt, pos_err_threshold = POS_TOL, rot_err_threshold = YAW_TOL, timeout = 50)
-    return A, end_xyz
+    return end_xyz
 
 def run_manipulation(args, hello_robot, socket, text, transform_node, base_node, move_range = [False, False], top_down = False):
     
@@ -456,46 +464,53 @@ def run():
     #manip_socket.connect("tcp://172.24.71.253:5556")
 
     while True:
-        hello_robot.robot.switch_to_navigation_mode()
-        hello_robot.robot.move_to_post_nav_posture()
-        hello_robot.robot.head.look_front()
-        A, end_xyz = run_navigation(hello_robot.robot, nav_socket)
-        camera_xyz = hello_robot.robot.head.get_pose()[:3, 3]
-        INIT_HEAD_TILT = compute_tilt(camera_xyz, end_xyz)
+        A = None
+        if input("You want to run navigation? Y or N") != "N":
+            A, B = read_input()
+
+            hello_robot.robot.switch_to_navigation_mode()
+            hello_robot.robot.move_to_post_nav_posture()
+            hello_robot.robot.head.look_front()
+            A, end_xyz = run_navigation(hello_robot.robot, nav_socket, A, B)
+            camera_xyz = hello_robot.robot.head.get_pose()[:3, 3]
+            INIT_HEAD_TILT = compute_tilt(camera_xyz, end_xyz)
 
         #xyt = hello_robot.robot.nav.get_base_pose()
         #xyt[2] = xyt[2] + np.pi / 2
         #print('\n\n\n\n\n debug')
         #time.sleep(5)
         #navigate(hello_robot.robot, xyt)
-        A = "printed paper cup"
-        if input("You want to run manipulation? Y or N ") == 'N':
-            continue
+        if input("You want to run manipulation? Y or N ") != 'N':
+            if (A is None):
+                A, _ = read_input()
         
-        hello_robot.robot.switch_to_manipulation_mode()
-        hello_robot.robot.head.look_at_ee()
-        run_manipulation(args, hello_robot, anygrasp_socket, A, transform_node, base_node)
-        #run_manipulation(args, hello_robot, anygrasp_open_socket, A, transform_node, base_node, move_range)
-        #run_manipulation(args, hello_robot, topdown_socket, A, transform_node, base_node, move_range, top_down = True)
-        hello_robot.robot.switch_to_navigation_mode()
-        # hello_robot.robot.move_to_post_nav_posture()
-        if input("You want to run navigation? Y or N") == 'N':
-            continue
-        hello_robot.robot.head.look_front()
-        A, end_xyz = run_navigation(hello_robot.robot, nav_socket)
-        camera_xyz = hello_robot.robot.head.get_pose()[:3, 3]
-        INIT_HEAD_TILT = compute_tilt(camera_xyz, end_xyz)
+            hello_robot.robot.switch_to_manipulation_mode()
+            hello_robot.robot.head.look_at_ee()
+            run_manipulation(args, hello_robot, anygrasp_socket, A, transform_node, base_node)
+            #run_manipulation(args, hello_robot, anygrasp_open_socket, A, transform_node, base_node, move_range)
+            #run_manipulation(args, hello_robot, topdown_socket, A, transform_node, base_node, move_range, top_down = True)
+        
+        if input("You want to run navigation? Y or N") != "N":
+            if (A is None):
+                A, _ = read_input()
+
+            hello_robot.robot.switch_to_navigation_mode()
+            # hello_robot.robot.move_to_post_nav_posture()
+            hello_robot.robot.head.look_front()
+            A, end_xyz = run_navigation(hello_robot.robot, nav_socket)
+            camera_xyz = hello_robot.robot.head.get_pose()[:3, 3]
+            INIT_HEAD_TILT = compute_tilt(camera_xyz, end_xyz)
 
         #xyt = hello_robot.robot.nav.get_base_pose()
         #xyt[2] = xyt[2] + np.pi / 2
         #navigate(hello_robot.robot, xyt)
-        if input("You want to run place? Y or N") == 'N':
-            continue
-        #A = "red basket"
-        hello_robot.robot.switch_to_manipulation_mode()
-        # hello_robot.robot.move_to_manip_posture()
-        hello_robot.robot.head.look_at_ee()
-        run_place(args, hello_robot, anygrasp_socket, A, transform_node, base_node)
+        if input("You want to run place? Y or N") != 'N':
+            if (A is None):
+                A, _ = read_input()
+            hello_robot.robot.switch_to_manipulation_mode()
+            # hello_robot.robot.move_to_manip_posture()
+            hello_robot.robot.head.look_at_ee()
+            run_place(args, hello_robot, anygrasp_socket, A, transform_node, base_node)
         time.sleep(3)
 
 if __name__ == '__main__':
