@@ -1,0 +1,6 @@
+<launch>
+  <arg name="robot_description" default="../robot/urdf/stretch_nobase_raised.urdf" />
+  <param name="robot_description" textfile="$(arg robot_description)" />
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+</launch>
