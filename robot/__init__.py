@@ -1,1 +1,1 @@
-from .hello_robot2 import HelloRobot
+from .hello_robot import HelloRobot
