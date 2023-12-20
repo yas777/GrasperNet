@@ -36,35 +36,38 @@ from grasper import capture_and_process_image
 POS_TOL = 0.1
 YAW_TOL = 0.2
 
-X_OFFSET = 0.241888
-Y_OFFSET = -0.160611
-# x1 = X_OFFSET, x2 = another x
-# THETA_OFFSET =  np.arctan2((x2 - x1), (y2 - y1))
-THETA_OFFSET = 0.5565652208883989
+X_OFFSET, Y_OFFSET, THETA_OFFSET, r2n_matrix, n2r_matrix = None, None, None, None, None
 
-r2n_matrix = \
-    np.array([
-        [1, 0, X_OFFSET],
-        [0, 1, Y_OFFSET],
-        [0, 0, 1]
-    ]) @ \
-    np.array([
-        [np.cos(THETA_OFFSET), -np.sin(THETA_OFFSET), 0],
-        [np.sin(THETA_OFFSET), np.cos(THETA_OFFSET), 0],
-        [0, 0, 1]
-    ])
+def load_offset(x1, y1, x2, y2):
+    global X_OFFSET, Y_OFFSET, THETA_OFFSET, r2n_matrix, n2r_matrix
+    X_OFFSET = x1
+    Y_OFFSET = y1
+    # x1 = X_OFFSET, x2 = another x
+    THETA_OFFSET =  np.arctan2((x2 - x1), (y2 - y1))
 
-n2r_matrix = \
-    np.array([
-        [np.cos(THETA_OFFSET), np.sin(THETA_OFFSET), 0],
-        [-np.sin(THETA_OFFSET), np.cos(THETA_OFFSET), 0],
-        [0, 0, 1]
-    ]) @ \
-    np.array([
-        [1, 0, -X_OFFSET],
-        [0, 1, -Y_OFFSET],
-        [0, 0, 1]
-    ])
+    r2n_matrix = \
+        np.array([
+            [1, 0, X_OFFSET],
+            [0, 1, Y_OFFSET],
+            [0, 0, 1]
+        ]) @ \
+        np.array([
+            [np.cos(THETA_OFFSET), -np.sin(THETA_OFFSET), 0],
+            [np.sin(THETA_OFFSET), np.cos(THETA_OFFSET), 0],
+            [0, 0, 1]
+        ])
+
+    n2r_matrix = \
+        np.array([
+            [np.cos(THETA_OFFSET), np.sin(THETA_OFFSET), 0],
+            [-np.sin(THETA_OFFSET), np.cos(THETA_OFFSET), 0],
+            [0, 0, 1]
+        ]) @ \
+        np.array([
+            [1, 0, -X_OFFSET],
+            [0, 1, -Y_OFFSET],
+            [0, 0, 1]
+        ])
 
 def navigate(robot, xyt_goal):
     xyt_goal = np.asarray(xyt_goal)
@@ -420,6 +423,7 @@ def compute_tilt(camera_xyz, target_xyz):
 def run():
     hello_robot = HelloRobot()
     args = get_args()
+    load_offset(arg.x1, arg.y1, args.x2, args.y2)
     
     if args.base_frame  == "gripper_camera":
         base_node = CAMERA_NODE

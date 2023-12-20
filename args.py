@@ -3,6 +3,10 @@ import yaml
 
 def get_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("-x1", "--x1", type=float, help = "x coordinates of tape robot stands on")
+    parser.add_argument("-y1", "--y1", type=float, help = "y coordinates of tape robot stands on")
+    parser.add_argument("-x2", "--x2", type=float, help = "x coordinates of tape robot faces")
+    parser.add_argument("-y2", "--y2", type=float, help = "y coordinates of tape robot faces")
     parser.add_argument("-m", "--mode",
                     choices = ["move", "pick", "capture", "place"], default = "move",
                     help = "Choose the mode of operation."
