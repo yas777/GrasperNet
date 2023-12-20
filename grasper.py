@@ -1,76 +1,101 @@
 from robot import HelloRobot
-from camera import DemoApp
-from camera import CaptureImage
-from utils.robot_utils import pixel_to_pcd
-from utils.seg_utils import visualize_masks
 from global_parameters import *
+import global_parameters
 from args import get_args
-from camera.segmentation import Segment
 from camera import RealSenseCamera
+from nodes import ImagePublisher
+from utils.grasper_utils import pickup, move_to_point
 
+import zmq
 import time
 import rospy
-import cv2
-import numpy as np
-import sys
 import PyKDL
+from PIL import Image
 
-np.set_printoptions(threshold=sys.maxsize)
-ix, iy = None, None
-def click_event(event, x, y, flags, param):
-    global ix, iy 
-    if event == cv2.EVENT_LBUTTONDOWN:
-        ix = x
-        iy = y
-        print("Selected point: ({}, {})".format(ix, iy))
+def capture_and_process_image(camera, args, socket, hello_robot, INIT_HEAD_TILT, top_down = False):
+    print(args.mode)
+    # point selector
+    if args.mode == "move":
+        # Image Capturing 
+        rgb_image, depth_image, points = camera.capture_image()
+        h, _, _ = rgb_image.shape
 
-def upscale_depth(rgb, depth_img):
-    height, width = rgb.shape[:2]
-    resized_depth_img = cv2.resize(depth_img, (width, height))
+        # Displaying windows for point selection
+        ix, iy = camera.visualize_image()
+        print(f"ix - {ix},iy - {iy}")
 
-    return resized_depth_img
+        # Image to world co-ordinates conversion
+        sx, sy, sz = camera.pixel2d_to_point3d(ix, iy)
+        point = PyKDL.Vector(sx, -sy, sz)
+        #point = PyKDL.Vector(-sy, sx, sz)
+        print(f"x - {sx}, y - {sy}, z - {sz}")
 
-def show_image(rgb, depth):
-    global ix, iy
-    # Window for depth
-    cv2.namedWindow("Depth Image")
-    cv2.setMouseCallback("Depth Image", click_event)
+        rotation = PyKDL.Rotation(1, 0, 0, 0, 1, 0, 0, 0, 1)
+    
+        return rotation, point
 
-    # Window for RGB Image
-    cv2.namedWindow("RGB Image")
-    cv2.setMouseCallback("RGB Image", click_event)
+    print(args.picking_object)
+    if args.mode == "pick" or args.mode == "place":
+        print("hello")
+        if args.mode == "pick":
+            obj = args.picking_object
+        else:
+            obj = args.placing_object
 
-    width, height = rgb.shape[:2]
-    print(width, height)
-    cv2.resizeWindow("RGB Image", width, height)
-    cv2.resizeWindow("Depth Image", width, height)
-    while(1):
-        rotated_rgb = cv2.rotate(rgb, cv2.ROTATE_90_CLOCKWISE)
-        rotated_depth = cv2.rotate(depth, cv2.ROTATE_90_CLOCKWISE)
-        # print(rotated_depth.dtype)
-        # rotated_depth_colored = None
-        # cv2.applyColorMap(rotated_depth, rotated_depth_colored, cv2.COLORMAP_BONE)
-        cv2.imshow("RGB Image", rotated_rgb)
-        cv2.imshow("Depth Image", rotated_depth/np.max(rotated_depth))
-        # cv2.waitKey(1000)
-        
-        if ix is not None and iy is not None:
-            cv2.line(rotated_rgb, (ix-25, iy-25), (ix + 25, iy + 25), (0, 0, 255), 2)
-            cv2.line(rotated_rgb, (ix-25, iy+25), (ix + 25, iy - 25), (0, 0, 255), 2)
-            tiy = iy
-            iy = width - ix
-            ix = tiy
-            cv2.imshow("RGB Image", rotated_rgb)
-            cv2.waitKey(3000)
-            break
-            # cv2.imwrite("./images/crossed_rgb.png", rgb)
-            # break
-        if cv2.waitKey(1000) == 27:
-            break
+        image_publisher = ImagePublisher(camera, socket)
 
-    cv2.destroyAllWindows()
+        # Centering the object
+        head_tilt_angles = [0, -0.1, 0.1]
+        tilt_retries, side_retries = 1, 0
+        retry_flag = True
+        head_tilt = INIT_HEAD_TILT
+        head_pan = INIT_HEAD_PAN
 
-if __name__ == '__main__':
+        while(retry_flag):
+            translation, rotation, depth, cropped, retry_flag = image_publisher.publish_image(obj, args.mode, head_tilt=head_tilt, top_down = top_down)
+
+            print(f"retry flag : {retry_flag}")
+            if (retry_flag == 1):
+                base_trans = translation[0]
+                head_tilt += (rotation[0])
+
+                hello_robot.move_to_position(base_trans=base_trans,
+                                        head_pan=head_pan,
+                                        head_tilt=head_tilt)
+                time.sleep(4)
+            
+            elif (side_retries == 2 and tilt_retries == 3):
+                hello_robot.move_to_position(base_trans=0.1, head_tilt=head_tilt)
+                side_retries = 3
+
+            elif retry_flag == 2:
+                if (tilt_retries == 3):
+                    if (side_retries == 0):
+                        hello_robot.move_to_position(base_trans=0.1, head_tilt=head_tilt_angles[0])
+                        side_retries = 1
+                    else:
+                        hello_robot.move_to_position(base_trans=-0.2, head_tilt=head_tilt_angles[0])
+                        side_retries = 2
+                    tilt_retries = 1
+                else:
+                    print(f"retrying with head tilt : {head_tilt + head_tilt_angles[tilt_retries]}")
+                    hello_robot.move_to_position(head_pan=head_pan,
+                                            head_tilt=head_tilt + head_tilt_angles[tilt_retries])
+                    tilt_retries += 1
+                    time.sleep(1)
+            
+            elif side_retries == 3:
+                print("No poses found in all retries")
+                time.sleep(2)
+            
+
+        if args.mode == "place":
+            translation = PyKDL.Vector(-translation[1], -translation[0], -translation[2])
+
+        return rotation, translation, depth
+
+
+if __name__ == "__main__":
     args = get_args()
 
     # Initalize robot and move to a height of 0.86
@@ -78,95 +103,87 @@ if __name__ == '__main__':
         base_node = CAMERA_NODE
     elif args.base_frame == "top_camera":
         base_node = TOP_CAMERA_NODE
-    elif args.base_frame == "gripper_left":
+    elif args.base_frame == "gripper_fingertip_left":
         base_node = GRIPPER_FINGERTIP_LEFT_NODE
-    elif args.base_frame == "gripper_right":
+    elif args.base_frame == "gripper_fingertip_right":
         base_node = GRIPPER_FINGERTIP_RIGHT_NODE
 
-    if args.transform_node == "gripper_left":
+    if args.transform_node == "gripper_fingertip_left":
         transform_node = GRIPPER_FINGERTIP_LEFT_NODE
-    elif args.transform_node == "gripper_right":
+    elif args.transform_node == "gripper_fingertip_right":
         transform_node = GRIPPER_FINGERTIP_RIGHT_NODE
+    elif args.transform_node == "gripper_left":
+        transform_node = GRIPPER_FINGER_LEFT_NODE
+    elif args.transform_node == "gripper_mid":
+        transform_node = GRIPPER_MID_NODE
+
     
     if (args.transform):
         hello_robot = HelloRobot(end_link=transform_node)
     else:
         hello_robot = HelloRobot(end_link=base_node)
     
-    if args.mode == "move":
-        gripper_pos = 0
-    else:
+    if args.mode == "pick":
         gripper_pos = 1
+    else:
+        gripper_pos = 0
+
+    if args.mode == "capture" or args.mode == "pick" or args.mode == "place":
+        global_parameters.INIT_WRIST_PITCH = -1.57
+
+    # Joint state publisher
+    # pub_proc = Process(target = publisher_process, args=(hello_robot, ))
+    # pub_proc.start()
+
+    try:
+        rospy.init_node('hello_robot_node')
+    except:
+        print('node already initialized hello_robot')
+
+    # Moving robot to intital position
+
+    print(args.picking_object)
+    print(INIT_ARM_POS, INIT_WRIST_PITCH, INIT_WRIST_ROLL, INIT_WRIST_YAW, gripper_pos)
+    hello_robot.move_to_position(arm_pos=INIT_ARM_POS,
+                                head_pan=INIT_HEAD_PAN,
+                                head_tilt=INIT_HEAD_TILT,
+                                gripper_pos = gripper_pos)
+    time.sleep(1)
     
-    hello_robot.move_to_position(lift_pos=INIT_LIFT_POS, 
-                                gripper_pos = gripper_pos,
-                                wrist_pitch=INIT_WRIST_PITCH)
+    hello_robot.move_to_position(lift_pos=INIT_LIFT_POS,
+                                wrist_pitch = global_parameters.INIT_WRIST_PITCH,
+                                wrist_roll = INIT_WRIST_ROLL,
+                                wrist_yaw = INIT_WRIST_YAW)
+    time.sleep(1)
 
-    # # Intialize Camera
-    # if args.mode == "pick":
-    # if base_node == TOP_CAMERA_NODE:
-    #     app = CaptureImage()
-    # elif base_node == CAMERA_NODE:
-    #     app = DemoApp()
-    #     app.connect_to_device(dev_idx = 0)
+    # transform, _, _ = hello_robot.get_joint_transform("base_link", GRIPPER_MID_NODE)
+    # print(transform)
+    # exit()
+    # Intialsiing Camera
+    #if args.mode == "move" or args.mode == "capture":
+    # camera = RealSenseCamera()
 
-    # ALlowing the robot to settle before taking the picture 
-    time.sleep(7)
+    camera = RealSenseCamera(hello_robot.robot)
 
-    # # process image
-    # rgb, depth, intrinsic_mat = app.start_process_image()
-    # resized_depth = upscale_depth(rgb, depth)
-    # np.save("depth.npy", resized_depth)
-    # print(np.asarray(resized_depth).shape[:2])
+    context = zmq.Context()
+    socket = context.socket(zmq.REQ)
+    socket.connect("tcp://100.107.224.62:5556")
 
-    # sam = Segment(SAM_CHECKPOINT, SAM_MODEL_TYPE)
-    # sam.set_image(rgb, resized_depth)
-    # show_image(rgb, resized_depth)
+    retry = True
+    while retry:
+        rotation, translation, depth = capture_and_process_image(camera, args, socket, hello_robot)
 
-    # pixel to pcd converison
-    # print(ix, iy, args.transform)
-    camera = RealSenseCamera()
-    camera.capture_image()
-    ix, iy = camera.visualize_image()
-    print(ix, iy)
-    if (ix is not None) and (iy is not None):
-        # input_points = np.array([[ix ,iy]])
-        # input_labels = np.array([1])
-        # masks, scores, min_y, max_y = sam.segment_image(input_points, input_labels)
-        # visualize_masks(rgb, masks, scores, input_points, input_labels)
-        # print(min_dep, max_dep)
-        # exit()
-
-        x, y, z = pixel_to_pcd(ix, iy, resized_depth, intrinsic_mat)
-        # new_z = (min_dep + max_dep) / 2
-        point = PyKDL.Vector(x, -y, z)
-        print(x, y, z)
-
-        # ix1, iy1, ix2, iy2 = ix, max_y, ix, min_y
-        # x1, y1, z1 = pixel_to_pcd(ix1, iy1, resized_depth, intrinsic_mat)
-        # x2, y2, z2 = pixel_to_pcd(ix2, iy2, resized_depth, intrinsic_mat)
-        # print(x1, y1, z1)
-        # print(x2, y2, z2)
-        # exit()
-        # point = PyKDL.Vector(0, 0, 0.3)
-        
-        # transform for converting point in camera co-ordiantes to gripper finger tip co-ordiantes
-        if args.transform and transform_node is not None:
-            transform, frame2, frame1 = hello_robot.get_joint_transform(base_node, transform_node)
-            transformed_point = transform * point
-            print("frame1 - ", frame1)
-            print("frame2 - ", frame2)
-            print("transform - ", transform)
+        if args.mode == "move":
+            move_to_point(hello_robot, translation, base_node, transform_node)
+            retry = False
+        elif args.mode == "pick":
+            pickup(hello_robot, rotation, translation, base_node, transform_node, gripper_depth = depth)
+            args.mode = "place"
         else:
-            transformed_point = point
+            hello_robot.move_to_position(lift_pos=1)
+            hello_robot.move_to_position(wrist_pitch=0)
+            move_to_point(hello_robot, translation, base_node, transform_node)
+            hello_robot.move_to_position(gripper_pos=1)
+            retry = False
+
         
-        print(point, transformed_point)
-        
-        hello_robot.move_to_pose(
-            [transformed_point.x(), transformed_point.y(), transformed_point.z()],
-            [0, 0, 0],  
-            [gripper_pos]
-        )
-        
-        if (args.mode == "pick"):
-            hello_robot.pickup(abs(0))

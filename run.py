@@ -12,9 +12,7 @@ from global_parameters import *
 import global_parameters
 from args import get_args
 from camera import RealSenseCamera
-#from segment import segment_image
 from utils import potrait_to_landscape, segment_point_cloud, plane_detection, display_image_and_point
-from nodes import JointStatePublisher, Listener, ImagePublisher
 
 import rospy
 import cv2
@@ -26,7 +24,7 @@ from PIL import Image
 from multiprocessing import Process
 
 from utils.grasper_utils import pickup, move_to_point
-from grasper2 import capture_and_process_image
+from grasper import capture_and_process_image
 
 
 #robot = StretchClient()
