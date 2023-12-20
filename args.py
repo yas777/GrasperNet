@@ -29,7 +29,4 @@ def get_args():
                     default = "gripper_mid",
                     help = "Operating frame of reference")
 
-    
-    # with open("config.yaml", "r") as conf:
-    #     return yaml.load(conf)
     return parser.parse_args()
