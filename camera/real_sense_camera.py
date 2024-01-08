@@ -1,104 +1,129 @@
-#!/usr/bin/env python3
+## License: Apache 2.0. See LICENSE file in root directory.
+## Copyright(c) 2017 Intel Corporation. All Rights Reserved.
 
-import rospy
-import sys
-import os
-import cv2
-import time
+#####################################################
+##              Align Depth to Color               ##
+#####################################################
+
+# First import the library
+import pyrealsense2 as rs
+# Import Numpy for easy array manipulation
 import numpy as np
+# Import OpenCV for easy image rendering
+import cv2
 
-from utils.robot_utils import cam_info_to_intrinsic_mat
-from sensor_msgs.msg import Image, CameraInfo
-from cv_bridge import CvBridge, CvBridgeError
+import open3d as o3d
 
-class CaptureImage:
-    """
-    A class that converts a subscribed ROS image to a OpenCV image and saves
-    the captured image to a predefined directory.
-    """
-    def __init__(self):
-        """
-        A function that initializes a CvBridge class, subscriber, and save path.
-        :param self: The self reference.
-        """
-        self.bridge = CvBridge()
-        self.rgb = None
-        self.depth = None
-        self.intrinsic_mat = None
-        self.rgb_sub = rospy.Subscriber('/camera/color/image_raw', Image, self.callback_rgb, queue_size=1)
-        self.depth_sub = rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image, self.call_back_depth, queue_size=1)
-        self.cam_info = rospy.Subscriber('/camera/aligned_depth_to_color/camera_info', CameraInfo, self.callback_info, queue_size=1)
-        self.save_path = '/home/hello-robot-yaswanth/camera_test'
+import matplotlib.pyplot as plt
 
-    def callback_rgb(self, msg):
-        """
-        A callback function that converts the ROS image to a CV2 image and stores the
-        image.
-        :param self: The self reference.
-        :param msg: The ROS image message type
-        .
-        """
-        try:
-            self.rgb = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
-        except CvBridgeError as e:
-            rospy.logwarn('CV Bridge error: {0}'.format(e))
+class RealSenseCamera:
+    def __init__(self, robot):
         
-        print("calling callback rgb", self.rgb.shape)
-        # print("Image", self.rgb)
-        # time.sleep(10)
-        # cv2.namedWindow("Image")
-        # cv2.imshow("Image", image)
-        # cv2.waitKey(10000)
-        # file_name = 'camera_image.jpeg'
-        # completeName = os.path.join(self.save_path, file_name)
-        # cv2.imwrite(completeName, image)
-        rospy.signal_shutdown("done")
-        sys.exit(0)
-    
-    def call_back_depth(self, msg):
-        """
-        A callback function that converts the ROS image to a CV2 image and stores the
-        image.
-        :param self: The self reference.
-        :param msg: The ROS image message type.
-        """
+        self.robot = robot
+        self.depth_scale = 0.001
 
-        try:
-            self.depth = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
-        except CvBridgeError as e:
-            rospy.logwarn('CV Bridge error: {0}'.format(e))
+        # Camera intrinsics
+        intrinsics = self.robot.dpt_cam.K 
+        self.fy = intrinsics[0, 0]
+        self.fx = intrinsics[1, 1]
+        self.cy = intrinsics[0, 2]
+        self.cx = intrinsics[1, 2]
+        print(self.fx, self.fy, self.cx, self.cy)
+
+        # selected ix and iy co-ordinates
+        self.ix, self.iy = None, None
+
+    def capture_image(self):
+
+        # Streaming loop
+        self.rgb_image, self.depth_image, self.points = self.robot.head.get_images(compute_xyz=True)
+        #TODO: This is actually unecessary, we are rotating the images to make sure we can make 
+        # minimal changes to our older versions of codes
+        self.rgb_image = np.rot90(self.rgb_image, k = 1)[:, :, [2, 1, 0]]
+        self.depth_image = np.rot90(self.depth_image, k = 1)
+        self.points = np.rot90(self.points, k = 1)
+
+        cv2.imwrite("./images/input.jpg", np.rot90(self.rgb_image, k=-1))
+        # cv2.imwrite("depth.jpg", np.rot90(self.depth_image, k=-1)/np.max(self.depth_image))
+        self.rgb_image = cv2.cvtColor(self.rgb_image, cv2.COLOR_BGR2RGB)
+        # np.save("rgb.npy", self.rgb_image)
+        # np.save("depth.npy", self.depth_image)
+        # np.save("points.npy", self.points)
         
-        self.depth = np.array(self.depth, dtype=np.float32)
-        print("calling depth callback", self.depth.shape)
-        # print("depth", self.depth)
-        # time.sleep(100)
-        # cv2.namedWindow("Depth")
-        # cv2.imshow("Depth", depth)
-        # cv2.waitKey(10000)
-        # file_name = 'camera_image.jpeg'
-        # completeName = os.path.join(self.save_path, file_name)
-        # cv2.imwrite(completeName, image)
-        rospy.signal_shutdown("done")
-        sys.exit(0)
+        fig, ax = plt.subplots(1, 2, figsize=(10,5))
+        timer = fig.canvas.new_timer(interval = 5000) #creating a timer object and setting an interval of 3000 milliseconds
+        timer.add_callback(lambda : plt.close())
 
-    def callback_info(self, msg):
-        print(msg)
-        self.intrinsic_mat = cam_info_to_intrinsic_mat(msg.K)
-        print("info", self.intrinsic_mat)
-        rospy.signal_shutdown("done")
-        sys.exit(0)
+        ax[0].imshow(np.rot90(self.rgb_image, k=-1))
+        ax[0].set_title("Color Image")
 
-    def start_process_image(self):
-        print("calling process iamge")
-        time.sleep(5)
-        while True:
-            # print(self.rgb, self.depth, self.intrinsic_mat)
-            if (self.rgb is not None) and (self.depth is not None) and (self.intrinsic_mat is not None):
-                return self.rgb, self.depth, self.intrinsic_mat
+        ax[1].imshow(np.rot90(self.depth_image, k=-1))
+        ax[1].set_title("Depth Image")
+            
+        plt.savefig("./images/rgb_dpt.png")
+        plt.pause(3)
+        plt.close()
+        
+        return self.rgb_image, self.depth_image, self.points
 
+    def pixel2d_to_point3d(self, ix, iy):
+        # d = self.depth_image[iy, ix]
+        # print(d, ix, iy, self.cx, self.cy, self.fx, self.fy)
+        # z = d
+        # x = (ix - self.cx)*(abs(z))/self.fx
+        # y = -(iy - self.cy)*(abs(z))/self.fy
 
-if __name__ == '__main__':
-    rospy.init_node('capture_image', argv=sys.argv)
-    CaptureImage()
-    rospy.spin()
+        # return x, y, z
+        return self.points[iy, ix][[1, 0, 2]]
 
+    def click_event(self, event, x, y, flags, param):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            self.ix = x
+            self.iy = y
+            print("Selected point: ({}, {})".format(self.ix, self.iy))
+
+    def visualize_image(self):
+
+        # Window for Depth Image
+        cv2.namedWindow("Depth Image")
+        cv2.setMouseCallback("Depth Image", self.click_event)
+
+        # Window for RGB Image
+        cv2.namedWindow("RGB Image")
+        cv2.setMouseCallback("RGB Image", self.click_event)
+
+        width, height = self.rgb_image.shape[:2]
+        cv2.resizeWindow("RGB Image", width, height)
+        cv2.resizeWindow("Depth Image", width, height)
+
+        cv2_rgb_image = cv2.cvtColor(self.rgb_image, cv2.COLOR_RGB2BGR)
+        while(1):
+            rotated_rgb = cv2.rotate(cv2_rgb_image, cv2.ROTATE_90_CLOCKWISE)
+            rotated_depth = cv2.rotate(self.depth_image, cv2.ROTATE_90_CLOCKWISE)
+
+            cv2.imshow("RGB Image", rotated_rgb)
+            cv2.imshow("Depth Image", rotated_depth/np.max(rotated_depth))
+            # cv2.waitKey(1000)
+            
+            if self.ix is not None and self.iy is not None:
+                cv2.line(rotated_rgb, (self.ix-25, self.iy-25), (self.ix + 25, self.iy + 25), (0, 0, 255), 2)
+                cv2.line(rotated_rgb, (self.ix-25, self.iy+25), (self.ix + 25, self.iy - 25), (0, 0, 255), 2)
+                tiy = self.iy
+                self.iy = width - self.ix
+                self.ix = tiy
+                cv2.imshow("RGB Image", rotated_rgb)
+                cv2.waitKey(3000)
+                break
+                # cv2.imwrite("./images/crossed_rgb.png", rgb)
+                # break
+            if cv2.waitKey(1000) == 27:
+                break
+            
+        return self.ix, self.iy 
+
+        cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    camera = RealSenseCamera()
+    camera.capture_image()
+    camera.visualize_image()
