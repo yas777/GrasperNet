@@ -2,7 +2,7 @@ import PyKDL
 import time
 import math
 
-def move_to_point(robot, point, base_node, gripper_node):
+def move_to_point(robot, point, base_node, gripper_node, move_mode=1, pitch_rotation=0):
     rotation = PyKDL.Rotation(1, 0, 0, 0, 1, 0, 0, 0, 1)
 
     dest_frame = PyKDL.Frame(rotation, point)
@@ -16,10 +16,10 @@ def move_to_point(robot, point, base_node, gripper_node):
 
     robot.move_to_pose(
             [transformed_frame.p[0], transformed_frame.p[1], transformed_frame.p[2]],
-            [0, 0, 0],
+            [pitch_rotation, 0, 0],
             # [-transformed_frame.M.GetRPY()[1], transformed_frame.M.GetRPY()[0], transformed_frame.M.GetRPY()[2]+1.53],
             [1],
-            move_mode=1
+            move_mode=move_mode
         )
 
 def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height = 0.03, gripper_depth=0.03, top_down = False):
@@ -177,7 +177,7 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
     #     p = (cur_pitch * (5 - i) - 1.57 * i) / 5
     #     robot.move_to_position(wrist_pitch = p)
     # robot.move_to_position(wrist_yaw = 0)
-    robot.move_to_position(lift_pos = 0.6)
+    robot.move_to_position(lift_pos = 0.45)
     time.sleep(1)
 
 

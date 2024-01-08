@@ -282,11 +282,24 @@ class HelloRobot:
 
         print(f"wrist pitch -{joints['joint_wrist_pitch']}")
         # print(f"velocites: {velocities}")
-        if mode:
+        if mode == 1:
             # Moving only the lift
             target1 = [0 for _ in range(6)]
             target1[1] = target_state[1] - state[1]
             #self.robot.manip.goto_joint_positions(target1, velocities, relative=True)
+            self.robot.manip.goto_joint_positions(target1, relative=True, velocities=velocities)
+            time.sleep(0.7)
+
+        elif (mode == 2):
+            # Moving base first
+            target1 = [0 for _ in range(6)]
+            target1[0] = target_state[0]
+            self.robot.manip.goto_joint_positions(target1, velocities=velocities)
+            time.sleep(0.7)
+
+            # Then move lift
+            target1 = [0 for _ in range(6)]
+            target1[1] = target_state[1] - state[1]
             self.robot.manip.goto_joint_positions(target1, relative=True, velocities=velocities)
             time.sleep(0.7)
 
@@ -413,6 +426,7 @@ class HelloRobot:
         self.fk_p_kdl.JntToCart(self.joint_array, curr_pose)
 
         rot_matrix = R.from_euler('xyz', rotation, degrees=False).as_matrix()
+        print("rot_matrix", rot_matrix)
 
 
 #new code from here

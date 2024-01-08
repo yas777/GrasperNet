@@ -189,29 +189,35 @@ def run_manipulation(args, hello_robot, socket, text, transform_node, base_node,
     gripper_pos = 1
 
     print(INIT_ARM_POS, INIT_WRIST_PITCH, INIT_WRIST_ROLL, INIT_WRIST_YAW, gripper_pos)
+    #print("coordinates - ", print(hello_robot.robot.nav.get_base_pose()))
     hello_robot.move_to_position(arm_pos=INIT_ARM_POS,
                                 head_pan=INIT_HEAD_PAN,
                                 head_tilt=INIT_HEAD_TILT,
                                 gripper_pos = gripper_pos)
     time.sleep(1)
-    
+    #print("coordinates - ", print(hello_robot.robot.nav.get_base_pose()))
     hello_robot.move_to_position(lift_pos=INIT_LIFT_POS,
                                 wrist_pitch = global_parameters.INIT_WRIST_PITCH,
                                 wrist_roll = INIT_WRIST_ROLL,
                                 wrist_yaw = INIT_WRIST_YAW)
     time.sleep(2)
+    #print("coordinates - ", print(hello_robot.robot.nav.get_base_pose()))
 
     camera = RealSenseCamera(hello_robot.robot)
 
     args.mode = 'pick'
     args.picking_object = text
     rotation, translation, depth = capture_and_process_image(camera, args, socket, hello_robot, INIT_HEAD_TILT, top_down = top_down)
-
+    
+    #print("coordinates - ", print(hello_robot.robot.nav.get_base_pose()))
     if input('Do you want to do this manipulation? Y or N ') != 'N':
         pickup(hello_robot, rotation, translation, base_node, transform_node, top_down = top_down, gripper_depth = depth)
-
+    
+    #print("coordinates - ", print(hello_robot.robot.nav.get_base_pose()))
     # Shift back to the original point
     hello_robot.move_to_position(base_trans = -hello_robot.robot.manip.get_joint_positions()[0])
+    
+    #print("coordinates - ", print(hello_robot.robot.nav.get_base_pose()))
 
 def run_place(args, hello_robot, socket, text, transform_node, base_node, move_range = [False, False], top_down = False):
 
@@ -219,8 +225,9 @@ def run_place(args, hello_robot, socket, text, transform_node, base_node, move_r
 
     args.mode = 'place'
     args.placing_object = text
+    time.sleep(2)
     rotation, translation, _ = capture_and_process_image(camera, args, socket, hello_robot, INIT_HEAD_TILT, top_down = top_down)
-
+    print(rotation)
     hello_robot.move_to_position(lift_pos=1.1)
     time.sleep(1)
     hello_robot.move_to_position(wrist_yaw=0,
@@ -230,7 +237,15 @@ def run_place(args, hello_robot, socket, text, transform_node, base_node, move_r
     #hello_robot.move_to_position(lift_pos=1.1)
     # hello_robot.move_to_position(wrist_pitch=0)
     time.sleep(1)
-    move_to_point(hello_robot, translation, base_node, transform_node)
+    move_to_point(hello_robot, translation, base_node, transform_node, move_mode=0)
+    #move_to_point(hello_robot, translation, base_node, transform_node, move_mode=0)
+    #time.sleep(4)
+    #move_to_point(hello_robot, translation, base_node, transform_node, move_mode=0, pitch_rotation=-1.57)
+    hello_robot.move_to_position(gripper_pos=1)
+    hello_robot.move_to_position(lift_pos = hello_robot.robot.manip.get_joint_positions()[1] + 0.2)
+    hello_robot.move_to_position(wrist_roll = 3)
+    time.sleep(1)
+    hello_robot.move_to_position(wrist_roll = -3)
     time.sleep(4)
     hello_robot.move_to_position(gripper_pos=1, 
                                 lift_pos = 1.1,
@@ -242,6 +257,8 @@ def run_place(args, hello_robot, socket, text, transform_node, base_node, move_r
     # hello_robot.move_to_position(lift_pos=1.1)
     # hello_robot.move_to_position(arm_pos=0)
     hello_robot.move_to_position(wrist_pitch=-1.57)
+    time.sleep(1)
+    hello_robot.move_to_position(base_trans = -hello_robot.robot.manip.get_joint_positions()[0])
 
 def compute_tilt(camera_xyz, target_xyz):
     vector = camera_xyz - target_xyz
@@ -310,6 +327,7 @@ def run():
         #print('\n\n\n\n\n debug')
         #time.sleep(5)
         #navigate(hello_robot.robot, xyt)
+        print('debug coordinates', hello_robot.robot.nav.get_base_pose())
         if input("You want to run manipulation? Y or N ") != 'N':
             if (A is None):
                 A, _ = read_input()
@@ -320,6 +338,8 @@ def run():
             #run_manipulation(args, hello_robot, anygrasp_open_socket, A, transform_node, base_node, move_range)
             #run_manipulation(args, hello_robot, topdown_socket, A, transform_node, base_node, move_range, top_down = True)
         
+        
+        print('debug coordinates', hello_robot.robot.nav.get_base_pose())
         if input("You want to run navigation? Y or N") != "N":
             A, B = read_input()
 
@@ -331,9 +351,9 @@ def run():
                 camera_xyz = hello_robot.robot.head.get_pose()[:3, 3]
                 INIT_HEAD_TILT = compute_tilt(camera_xyz, end_xyz)
 
-        #xyt = hello_robot.robot.nav.get_base_pose()
-        #xyt[2] = xyt[2] + np.pi / 2
-        #navigate(hello_robot.robot, xyt)
+            #xyt = hello_robot.robot.nav.get_base_pose()
+            #xyt[2] = xyt[2] + np.pi / 2
+            #navigate(hello_robot.robot, xyt)
         if input("You want to run place? Y or N") != 'N':
             if (A is None):
                 A, _ = read_input()
