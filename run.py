@@ -265,7 +265,6 @@ def compute_tilt(camera_xyz, target_xyz):
     return -np.arctan2(vector[2], np.linalg.norm(vector[:2]))
 
 def run():
-    hello_robot = HelloRobot()
     args = get_args()
     load_offset(args.x1, args.y1, args.x2, args.y2)
     
@@ -287,9 +286,9 @@ def run():
     elif args.transform_node == "gripper_mid":
         transform_node = GRIPPER_MID_NODE
     if (args.transform):
-        hello_robot = HelloRobot(end_link=transform_node)
+        hello_robot = HelloRobot(end_link=transform_node, stretch_client_urdf_file='home-robot/assets/hab_stretch/urdf')
     else:
-        hello_robot = HelloRobot(end_link=base_node)
+        hello_robot = HelloRobot(end_link=base_node, stretch_client_urdf_file='home-robot/assets/hab_stretch/urdf')
 
     global_parameters.INIT_WRIST_PITCH = -1.57
     #camera = RealSenseCamera(hello_robot.robot)
