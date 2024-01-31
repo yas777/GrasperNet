@@ -415,6 +415,7 @@ class HelloRobot:
         
         # move logic
         self.updateJoints()
+        print(self.joints)
         
         for joint_index in range(self.joint_array.rows()):
             self.joint_array[joint_index] = self.joints[self.joint_list[joint_index]]
@@ -444,35 +445,31 @@ class HelloRobot:
 
         # correction in final x, y, z postions
         # print(f"corrections - {CORRECTION_X, CORRECTION_Y, CORRECTION_Z}")
-        # print(f"corrections - {CORRECTION_X, global_parameters.CORRECTION_Y, CORRECTION_Z}")
+        print(f"corrections - {global_parameters.CORRECTION_X, global_parameters.CORRECTION_Y, CORRECTION_Z}")
         goal_pose_new.p[0] = goal_pose_new.p[0] + global_parameters.CORRECTION_X
         goal_pose_new.p[1] = goal_pose_new.p[1] + global_parameters.CORRECTION_Y
         goal_pose_new.p[2] = goal_pose_new.p[2] + global_parameters.CORRECTION_Z
         # print("goal pose - ", goal_pose_new)        
 
         seed_array = PyKDL.JntArray(self.arm_chain.getNrOfJoints())
-        # seed_array[self.arm_chain.getNrOfJoints()-1] = self.joint_array[self.arm_chain.getNrOfJoints() - 1]
-        # print("seed array - ", seed_array)
-        # print(seed_array, goal_pose_new)
         self.ik_p_kdl.CartToJnt(seed_array, goal_pose_new, self.joint_array)
 
         ik_joints = {}
-        # print("self.joint_array: ", self.joint_array)
+        print("self.joint_array: ", self.joint_array)
         
-        # print("joint array: ", self.joint_array)
-        # print(f"joint array length -{self.joint_array.rows()}")
+        print("joint array: ", self.joint_array)
+        print(f"joint array length -{self.joint_array.rows()}")
         for joint_index in range(self.joint_array.rows()):
             ik_joints[self.joint_list[joint_index]] = self.joint_array[joint_index]
-        # print("ik joints - ", ik_joints)
 
-
-        # print('ik_joints', ik_joints)
+        print('ik_joints', ik_joints)
         # test_pose = PyKDL.Frame()
         # self.fk_p_kdl.JntToCart(self.joint_array, test_pose)
 
         # # print(test_pose.p)
         # # print(test_pose.M.GetRPY())
 
+        print("Move to:", ik_joints)
         self.move_to_joints(ik_joints, gripper, move_mode, velocities)
         # time.sleep(2)
 

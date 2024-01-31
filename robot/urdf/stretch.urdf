@@ -314,20 +314,6 @@
     <child link="link_left_wheel"/>
     <dynamics damping="21.75" friction="10.48"/>
   </joint>
-  <link name="fake_link_x">
-    <inertial>
-      <origin rpy="0.0 0.0 0." xyz="0. 0. 0."/>
-      <mass value="0.749143203376"/>
-      <inertia ixx="0.0709854511955" ixy="-0.00433428742758" ixz="-0.000186110788698" iyy="0.000437922053343" iyz="-0.00288788257713" izz="0.0711048085017"/>
-    </inertial>
-  </link>
-  <joint name="joint_fake" type="prismatic">
-    <origin rpy="0. 0. 0." xyz="0. 0. 0."/>
-    <axis xyz="1.0 0.0 0.0"/>
-    <parent link="base_link"/>
-    <child link="fake_link_x"/>
-    <limit effort="100.0" lower="-1.0" upper="1.1" velocity="1.0"/>
-  </joint>
   <link name="caster_link">
     <inertial>
       <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
@@ -379,7 +365,7 @@
     </collision>
   </link>
   <joint name="joint_mast" type="fixed">
-    <origin xyz="-0.06886239813360509 0.13725755297906447 0.025143215009302215" rpy="1.5725304449603004 0.0027932103811125764 0.013336895699597295"/>
+    <origin xyz="-0.0724940356922689 0.1396132937867568 0.021697509564934978" rpy="1.5742152551827593 0.023130319841277114 0.033874711475578384"/>
     <axis xyz="0.0 0.0 0.0"/>
     <parent link="fake_link_x"/>
     <child link="link_mast"/>
@@ -436,7 +422,7 @@
     </collision>
   </link>
   <joint name="joint_arm_l4" type="fixed">
-    <origin xyz="-0.2523079099923315 -0.00046358158197051135 -0.006180072447490051" rpy="1.5851841389128425 -0.008966074572395621 -1.5866239497902528"/>
+    <origin xyz="-0.25346046622553026 -0.0006888955385321449 -0.009067467536432347" rpy="1.5723623435010765 0.02018571874175068 -1.5695989194351543"/>
     <axis xyz="0.0 0.0 0.0"/>
     <parent link="link_lift"/>
     <child link="link_arm_l4"/>
@@ -637,7 +623,7 @@
     </collision>
   </link>
   <joint name="joint_head_pan" type="revolute">
-    <origin xyz="0.13325570978545617 0.07617617446959961 -0.009351286218560623" rpy="0.01100262211911233 0.016732815421323766 1.573854796890386"/>
+    <origin xyz="0.12653591644065892 0.06996300447388382 -0.007502567186114471" rpy="-0.013482085643258484 0.008351178824350214 1.5828756850605683"/>
     <axis xyz="0.0 0.0 1.0"/>
     <parent link="link_head"/>
     <child link="link_head_pan"/>
@@ -666,7 +652,7 @@
     </collision>
   </link>
   <joint name="joint_head_tilt" type="revolute">
-    <origin xyz="-0.006034037729667192 0.024051664840607265 -0.05437206063104133" rpy="1.5467189102976846 0.03568929327401138 0.06774098088428002"/>
+    <origin xyz="-0.010551572466977533 0.03117939300009126 -0.05286298183491632" rpy="1.6180532800825063 -0.03979025166173167 0.0358699222168261"/>
     <axis xyz="0.0 0.0 1.0"/>
     <parent link="link_head_pan"/>
     <child link="link_head_tilt"/>
@@ -819,7 +805,7 @@
     <color rgba="0.1 0.1 0.1 1.0"/>
   </material>
   <joint name="camera_joint" type="fixed">
-    <origin xyz="0.028188772272801907 -0.007564712173205754 0.017944882096133475" rpy="0.004350212950992322 0.0034525753069547527 0.017907303224988517"/>
+    <origin xyz="0.02619219623036331 -0.00907998840588666 0.017504180222345376" rpy="0.024000002807284544 -0.008300456177192217 -0.05827310651731734"/>
     <parent link="link_head_tilt"/>
     <child link="camera_bottom_screw_frame"/>
   </joint>
@@ -975,5 +961,19 @@
     <axis xyz="0.0 0.0 0.0"/>
     <parent link="link_mast"/>
     <child link="respeaker_base"/>
+  </joint>
+<link name="fake_link_x">
+    <inertial>
+      <origin rpy="0.0 0.0 0." xyz="0. 0. 0."/>
+      <mass value="0.749143203376"/>
+      <inertia ixx="0.0709854511955" ixy="-0.00433428742758" ixz="-0.000186110788698" iyy="0.000437922053343" iyz="-0.00288788257713" izz="0.0711048085017"/>
+    </inertial>
+  </link>
+  <joint name="joint_fake" type="prismatic">
+    <origin rpy="0. 0. 0." xyz="0. 0. 0."/>
+    <axis xyz="1.0 0.0 0.0"/>
+    <parent link="base_link"/>
+    <child link="fake_link_x"/>
+    <limit effort="100.0" lower="-1.0" upper="1.1" velocity="1.0"/>
   </joint>
 </robot>
