@@ -8,8 +8,8 @@ from robot import HelloRobot
 import zmq
 import time
 
-from global_parameters import *
-import global_parameters
+#from global_parameters import *
+#import global_parameters
 from args import get_args
 from camera import RealSenseCamera
 from utils import potrait_to_landscape, segment_point_cloud, plane_detection, display_image_and_point
@@ -28,6 +28,17 @@ from grasper import capture_and_process_image
 
 POS_TOL = 0.1
 YAW_TOL = 0.2
+
+GRIPPER_MID_NODE = "link_straight_gripper"
+TOP_CAMERA_NODE = "camera_depth_optical_frame"
+
+INIT_LIFT_POS = 0.33 
+INIT_WRIST_PITCH = -1.57 
+INIT_ARM_POS = 0
+INIT_WRIST_ROLL = 0
+INIT_WRIST_YAW = 0
+INIT_HEAD_PAN = -1.53
+INIT_HEAD_TILT = -0.65
 
 X_OFFSET, Y_OFFSET, THETA_OFFSET, r2n_matrix, n2r_matrix = None, None, None, None, None
 
@@ -168,7 +179,8 @@ def run_manipulation(args, hello_robot, socket, text, transform_node, base_node,
     time.sleep(1)
     #print("coordinates - ", print(hello_robot.robot.nav.get_base_pose()))
     hello_robot.move_to_position(lift_pos=INIT_LIFT_POS,
-                                wrist_pitch = global_parameters.INIT_WRIST_PITCH,
+                                #wrist_pitch = global_parameters.INIT_WRIST_PITCH,
+                                wrist_pitch = INIT_WRIST_PITCH,
                                 wrist_roll = INIT_WRIST_ROLL,
                                 wrist_yaw = INIT_WRIST_YAW)
     time.sleep(2)
@@ -240,29 +252,33 @@ def run():
     args = get_args()
     load_offset(args.x1, args.y1, args.x2, args.y2)
     
-    if args.base_frame  == "gripper_camera":
-        base_node = CAMERA_NODE
-    elif args.base_frame == "top_camera":
-        base_node = TOP_CAMERA_NODE
-    elif args.base_frame == "gripper_fingertip_left":
-        base_node = GRIPPER_FINGERTIP_LEFT_NODE
-    elif args.base_frame == "gripper_fingertip_right":
-        base_node = GRIPPER_FINGERTIP_RIGHT_NODE
+    # if args.base_frame  == "gripper_camera":
+    #     base_node = CAMERA_NODE
+    # elif args.base_frame == "top_camera":
+    #     base_node = TOP_CAMERA_NODE
+    # elif args.base_frame == "gripper_fingertip_left":
+    #     base_node = GRIPPER_FINGERTIP_LEFT_NODE
+    # elif args.base_frame == "gripper_fingertip_right":
+    #     base_node = GRIPPER_FINGERTIP_RIGHT_NODE
+    base_node = TOP_CAMERA_NODE
 
-    if args.transform_node == "gripper_fingertip_left":
-        transform_node = GRIPPER_FINGERTIP_LEFT_NODE
-    elif args.transform_node == "gripper_fingertip_right":
-        transform_node = GRIPPER_FINGERTIP_RIGHT_NODE
-    elif args.transform_node == "gripper_left":
-        transform_node = GRIPPER_FINGER_LEFT_NODE
-    elif args.transform_node == "gripper_mid":
-        transform_node = GRIPPER_MID_NODE
-    if (args.transform):
-        hello_robot = HelloRobot(end_link=transform_node)
-    else:
-        hello_robot = HelloRobot(end_link=base_node)
+    # if args.transform_node == "gripper_fingertip_left":
+    #     transform_node = GRIPPER_FINGERTIP_LEFT_NODE
+    # elif args.transform_node == "gripper_fingertip_right":
+    #     transform_node = GRIPPER_FINGERTIP_RIGHT_NODE
+    # elif args.transform_node == "gripper_left":
+    #     transform_node = GRIPPER_FINGER_LEFT_NODE
+    # elif args.transform_node == "gripper_mid":
+    #     transform_node = GRIPPER_MID_NODE
+    transform_node = GRIPPER_MID_NODE
+    hello_robot = HelloRobot(end_link = transform_node)
+    # if (args.transform):
+    #     hello_robot = HelloRobot(end_link=transform_node)
+    # else:
+    #     hello_robot = HelloRobot(end_link=base_node)
 
-    global_parameters.INIT_WRIST_PITCH = -1.57
+    #INIT_WRIST_PITCH = -1.57
+    #global_parameters.INIT_WRIST_PITCH = -1.57
     #camera = RealSenseCamera(hello_robot.robot)
     #image_publisher = ImagePublisher(camera)
 
@@ -271,12 +287,13 @@ def run():
     nav_socket.connect("tcp://" + args.ip + ":" + str(args.navigation_port))
     #nav_socket.connect("tcp://172.24.71.253:5555")
     anygrasp_socket = context.socket(zmq.REQ)
+    anygrasp_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port))
     # args.manipulation_port = 5556
-    anygrasp_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 0))
-    anygrasp_open_socket = context.socket(zmq.REQ)
-    anygrasp_open_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 1))
-    topdown_socket = context.socket(zmq.REQ)
-    topdown_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 2))
+    # anygrasp_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 0))
+    # anygrasp_open_socket = context.socket(zmq.REQ)
+    # anygrasp_open_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 1))
+    # topdown_socket = context.socket(zmq.REQ)
+    # topdown_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 2))
     #topdown_socket.connect("tcp://" + "100.107.224.62" + ":" + str(args.manipulation_port + 2))
     #manip_socket.connect("tcp://172.24.71.253:5556")
 
@@ -309,7 +326,8 @@ def run():
             #run_manipulation(args, hello_robot, anygrasp_open_socket, A, transform_node, base_node, move_range)
             #run_manipulation(args, hello_robot, topdown_socket, A, transform_node, base_node, move_range, top_down = True)
         
-        
+        # clear picking object
+        A, B = None, None
         print('debug coordinates', hello_robot.robot.nav.get_base_pose())
         if input("You want to run navigation? Y or N") != "N":
             A, B = read_input()
