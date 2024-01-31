@@ -24,14 +24,16 @@ OVERRIDE_STATES = {}
 
 class HelloRobot:
 
-    def __init__(self, urdf_file = 'stretch.urdf', stretch_client_urdf_file = 'hab_stretch/urdf', 
-    #def __init__(self, urdf_file = 'hab_stretch/urdf/stretch.urdf', stretch_client_urdf_file = 'hab_stretch/urdf',
+    #def __init__(self, urdf_file = 'stretch.urdf', stretch_client_urdf_file = 'hab_stretch/urdf', 
+    #def __init__(self, urdf_file = 'hab_stretch/urdf/stretch_manip_mode.urdf', stretch_client_urdf_file = 'hab_stretch/urdf',
+    def __init__(self, stretch_client_urdf_file = 'hab_stretch/urdf',
             gripper_threshold = 7.0, stretch_gripper_max = 0.3, stretch_gripper_min = 0, end_link = GRIPPER_MID_NODE):
         self.STRETCH_GRIPPER_MAX = stretch_gripper_max
         self.STRETCH_GRIPPER_MIN = stretch_gripper_min
-        self.urdf_file = urdf_file
+        #self.urdf_file = urdf_file
+        self.urdf_path = os.path.join(stretch_client_urdf_file, 'stretch_manip_mode.urdf')
         
-        self.urdf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'urdf', self.urdf_file) 
+        #self.urdf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'urdf', self.urdf_file) 
         #self.urdf_path = self.urdf_file
         self.GRIPPER_THRESHOLD = gripper_threshold
 

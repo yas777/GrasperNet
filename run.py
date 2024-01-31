@@ -26,13 +26,6 @@ from multiprocessing import Process
 from utils.grasper_utils import pickup, move_to_point
 from grasper import capture_and_process_image
 
-
-#robot = StretchClient()
-#robot.switch_to_navigation_mode()
-#robot.move_to_nav_posture()
-#robot = stretch_body.robot.Robot()
-#robot.startup()
-
 POS_TOL = 0.1
 YAW_TOL = 0.2
 
@@ -78,7 +71,6 @@ def navigate(robot, xyt_goal):
         robot.nav.navigate_to(xyt_goal, blocking = False)
         xyt_curr = robot.nav.get_base_pose()
         print("The robot currently loactes at " + str(xyt_curr))
-        #time.sleep(0.5)
         if np.allclose(xyt_curr[:2], xyt_goal[:2], atol=POS_TOL) and \
                 (np.allclose(xyt_curr[2], xyt_goal[2], atol=YAW_TOL)\
                  or np.allclose(xyt_curr[2], xyt_goal[2] + np.pi * 2, atol=YAW_TOL)\
@@ -123,21 +115,13 @@ def read_input():
     return A, B
 
 def run_navigation(robot, socket, A, B):
-    # Reset robot
-    #print("Resetting robot...")
-    #robot.reset()
     start_xy = robot.nav.get_base_pose()
     print(start_xy)
-    #start_xy[0] += X_OFFSET
-    #start_xy[1] += Y_OFFSET
     transformed_start_xy = r2n_matrix @ np.array([start_xy[0], start_xy[1], 1])
     start_xy[0], start_xy[1] = transformed_start_xy[0], transformed_start_xy[1]
     start_xy[2] += THETA_OFFSET
     print(start_xy)
-    # A = str(input("Enter A: "))
-    # print("A = ", A)
-    # B = str(input("Enter B: "))
-    # print("B = ", B)
+
     send_array(socket, start_xy)
     print(socket.recv_string())
     socket.send_string(A)
@@ -148,7 +132,6 @@ def run_navigation(robot, socket, A, B):
     paths = recv_array(socket)
     print(paths)
     socket.send_string("Path received")
-    #move_range = recv_array(socket)
     end_xyz = recv_array(socket)
     z = end_xyz[2]
     end_xyz = (n2r_matrix @ np.array([end_xyz[0], end_xyz[1], 1]))
@@ -163,25 +146,13 @@ def run_navigation(robot, socket, A, B):
     final_paths = []
     for path in paths:
         transformed_path = n2r_matrix @ np.array([path[0], path[1], 1])
-        #path[0], path[1] = transformed_path[0], transformed_path[1]
         transformed_path[2] = path[2] - THETA_OFFSET
-        #path = (path[0] - X_OFFSET, path[1] - Y_OFFSET, path[2] - THETA_OFFSET)
         print(transformed_path)
         final_paths.append(transformed_path)
         navigate(robot, transformed_path)
     xyt = robot.nav.get_base_pose()
     xyt[2] = xyt[2] + np.pi / 2
     navigate(robot, xyt)
-    # last_waypoint = np.copy(final_paths[-1])
-    # last_waypoint[2] += np.pi / 2
-    # final_paths.append(last_waypoint)
-    # print(last_waypoint)
-    # robot.nav.execute_trajectory(
-    #     final_paths, 
-    #     pos_err_threshold = POS_TOL, 
-    #     #rot_err_threshold = YAW_TOL, 
-    #     per_waypoint_timeout = 30)
-    #robot.wait_for_waypoints(xyt, pos_err_threshold = POS_TOL, rot_err_threshold = YAW_TOL, timeout = 50)
     return end_xyz
 
 def run_manipulation(args, hello_robot, socket, text, transform_node, base_node, move_range = [False, False], top_down = False):
@@ -242,7 +213,7 @@ def run_place(args, hello_robot, socket, text, transform_node, base_node, move_r
     #time.sleep(4)
     #move_to_point(hello_robot, translation, base_node, transform_node, move_mode=0, pitch_rotation=-1.57)
     hello_robot.move_to_position(gripper_pos=1)
-    hello_robot.move_to_position(lift_pos = hello_robot.robot.manip.get_joint_positions()[1] + 0.2)
+    hello_robot.move_to_position(lift_pos = hello_robot.robot.manip.get_joint_positions()[1] + 0.3)
     hello_robot.move_to_position(wrist_roll = 3)
     time.sleep(1)
     hello_robot.move_to_position(wrist_roll = -3)

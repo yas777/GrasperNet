@@ -146,6 +146,7 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
         diff = diff - dist
     
     robot.pickup(abs(0))
+    #robot.move_to_position(lift_pos = robot.robot.manip.get_joint_positions()[1])
     robot.move_to_position(lift_pos = 1.1)
     time.sleep(2)
     #time.sleep(5)
