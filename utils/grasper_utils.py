@@ -48,7 +48,7 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
                                 rotation[2][0],  rotation[2][1], rotation[2][2])
     
     gripper_yaw = math.atan(rotation[1][0]/rotation[0][0])
-    print(f"gripper_yaw - {gripper_yaw}")
+    print(f"gripper_yaw - {gripper_yaw}")   
 
     # Rotation from camera frame to pose frame
     rotation =  rotation1_bottom * rotation1
@@ -64,11 +64,13 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
     robot.move_to_position(lift_pos = 1.1, head_pan = None, head_tilt = None)
     time.sleep(2)
 
+
     # Rotation for aligning gripper frame   to model pose frame
     if top_down:
         rotation2_top = PyKDL.Rotation(1, 0, 0, 0, 1, 0, 0, 0, 1)
     else:
-        rotation2_top = PyKDL.Rotation(0, 0, 1, 1, 0, 0, 0, -1, 0)
+        # rotation2_top = PyKDL.Rotation(0, 0, 1, 1, 0, 0, 0, -1, 0)
+        rotation2_top = PyKDL.Rotation(1, 0, 0, 0, -1, 0, 0, 0, 1)
 
     # final Rotation of gripper to hold the objet
     final_rotation = transformed_frame.M * rotation2_top
@@ -89,13 +91,14 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
     # print(f"transform1 {cam2gripper_transform}")
     print(f"transformed point1 - {transformed_point1}")
 
-    diff_value = (0.228 - gripper_depth - gripper_height)
-    transformed_point1[2] -= (diff_value)
+    # diff_value = (0.228 - gripper_depth - gripper_height)
+    diff_value = 0
+    transformed_point1[0] -= (diff_value)
     ref_diff = (diff_value)
 
     # Moving gripper to pose center 
     robot.move_to_pose(
-        [transformed_point1.x(), transformed_point1.y(), transformed_point1.z() - 0.2],
+        [transformed_point1.x()-0.2, transformed_point1.y(), transformed_point1.z()],
         [0, 0, 0],
         # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
         [1],
@@ -117,7 +120,7 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
     if diff > 0.08:
         dist = diff - 0.08
         robot.move_to_pose(
-            [0, 0, dist],
+            [dist, 0, 0],
             [0, 0, 0],
             # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
             [1]
@@ -132,7 +135,7 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
     while diff > 0.01:
         dist = min(0.03, diff)
         robot.move_to_pose(
-            [0, 0, dist],   
+            [dist, 0, 0],   
             [0, 0, 0],
             # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
             [1],

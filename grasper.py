@@ -7,6 +7,7 @@ from nodes import ImagePublisher
 from utils.grasper_utils import pickup, move_to_point
 
 import zmq
+
 import time
 import rospy
 import PyKDL

@@ -24,16 +24,12 @@ OVERRIDE_STATES = {}
 
 class HelloRobot:
 
-    #def __init__(self, urdf_file = 'stretch.urdf', stretch_client_urdf_file = 'hab_stretch/urdf', 
-    #def __init__(self, urdf_file = 'hab_stretch/urdf/stretch_manip_mode.urdf', stretch_client_urdf_file = 'hab_stretch/urdf',
     def __init__(self, stretch_client_urdf_file = 'hab_stretch/urdf',
             gripper_threshold = 7.0, stretch_gripper_max = 0.3, stretch_gripper_min = 0, end_link = GRIPPER_MID_NODE):
         self.STRETCH_GRIPPER_MAX = stretch_gripper_max
         self.STRETCH_GRIPPER_MIN = stretch_gripper_min
-        #self.urdf_file = urdf_file
         self.urdf_path = os.path.join(stretch_client_urdf_file, 'stretch_manip_mode.urdf')
         
-        #self.urdf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'urdf', self.urdf_file) 
         #self.urdf_path = self.urdf_file
         self.GRIPPER_THRESHOLD = gripper_threshold
 
@@ -270,6 +266,7 @@ class HelloRobot:
         #WRIST_PITCH = 4
         #WRIST_ROLL = 5
         state = self.robot.manip.get_joint_positions()
+        print(joints)
         joints['joint_wrist_pitch'] = self.clamp(joints['joint_wrist_pitch'], -1.57, 0.1)
         target_state = [
             joints['joint_fake'], 
@@ -289,25 +286,25 @@ class HelloRobot:
             target1 = [0 for _ in range(6)]
             target1[1] = target_state[1] - state[1]
             #self.robot.manip.goto_joint_positions(target1, velocities, relative=True)
-            self.robot.manip.goto_joint_positions(target1, relative=True, velocities=velocities)
+            self.robot.manip.goto_joint_positions(target1, relative=True)
             time.sleep(0.7)
 
         elif (mode == 2):
             # Moving base first
             target1 = [0 for _ in range(6)]
             target1[0] = target_state[0]
-            self.robot.manip.goto_joint_positions(target1, velocities=velocities)
+            self.robot.manip.goto_joint_positions(target1)
             time.sleep(0.7)
 
             # Then move lift
             target1 = [0 for _ in range(6)]
             target1[1] = target_state[1] - state[1]
-            self.robot.manip.goto_joint_positions(target1, relative=True, velocities=velocities)
+            self.robot.manip.goto_joint_positions(target1, relative=True)
             time.sleep(0.7)
 
         print(f"current state {state}")
         print(f"target state {target_state}")
-        self.robot.manip.goto_joint_positions(target_state, velocities=velocities)
+        self.robot.manip.goto_joint_positions(target_state)
         # self.robot.manip.goto_joint_positions(target_state)
         # self.robot.manip.goto(target_state, velocities)
         time.sleep(0.7)

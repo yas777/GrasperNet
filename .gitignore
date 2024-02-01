@@ -1,0 +1,5 @@
+*.pyc
+/hab_stretch/*
+*.jpg
+*.png
+*.urdf

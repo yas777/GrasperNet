@@ -271,12 +271,13 @@ def run():
     nav_socket.connect("tcp://" + args.ip + ":" + str(args.navigation_port))
     #nav_socket.connect("tcp://172.24.71.253:5555")
     anygrasp_socket = context.socket(zmq.REQ)
+    anygrasp_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port))
     # args.manipulation_port = 5556
-    anygrasp_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 0))
-    anygrasp_open_socket = context.socket(zmq.REQ)
-    anygrasp_open_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 1))
-    topdown_socket = context.socket(zmq.REQ)
-    topdown_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 2))
+    #anygrasp_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 0))
+    #anygrasp_open_socket = context.socket(zmq.REQ)
+    #anygrasp_open_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 1))
+    #topdown_socket = context.socket(zmq.REQ)
+    #topdown_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 2))
     #topdown_socket.connect("tcp://" + "100.107.224.62" + ":" + str(args.manipulation_port + 2))
     #manip_socket.connect("tcp://172.24.71.253:5556")
 

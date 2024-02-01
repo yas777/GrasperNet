@@ -1,6 +1,7 @@
 import argparse
 import yaml
 
+
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-x1", "--x1", type=float, help = "x coordinates of tape robot stands on")
