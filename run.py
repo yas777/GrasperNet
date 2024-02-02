@@ -248,34 +248,15 @@ def compute_tilt(camera_xyz, target_xyz):
     return -np.arctan2(vector[2], np.linalg.norm(vector[:2]))
 
 def run():
-    hello_robot = HelloRobot()
+    # hello_robot = HelloRobot()
     args = get_args()
     load_offset(args.x1, args.y1, args.x2, args.y2)
     
-    # if args.base_frame  == "gripper_camera":
-    #     base_node = CAMERA_NODE
-    # elif args.base_frame == "top_camera":
-    #     base_node = TOP_CAMERA_NODE
-    # elif args.base_frame == "gripper_fingertip_left":
-    #     base_node = GRIPPER_FINGERTIP_LEFT_NODE
-    # elif args.base_frame == "gripper_fingertip_right":
-    #     base_node = GRIPPER_FINGERTIP_RIGHT_NODE
     base_node = TOP_CAMERA_NODE
 
-    # if args.transform_node == "gripper_fingertip_left":
-    #     transform_node = GRIPPER_FINGERTIP_LEFT_NODE
-    # elif args.transform_node == "gripper_fingertip_right":
-    #     transform_node = GRIPPER_FINGERTIP_RIGHT_NODE
-    # elif args.transform_node == "gripper_left":
-    #     transform_node = GRIPPER_FINGER_LEFT_NODE
-    # elif args.transform_node == "gripper_mid":
-    #     transform_node = GRIPPER_MID_NODE
     transform_node = GRIPPER_MID_NODE
     hello_robot = HelloRobot(end_link = transform_node)
-    # if (args.transform):
-    #     hello_robot = HelloRobot(end_link=transform_node)
-    # else:
-    #     hello_robot = HelloRobot(end_link=base_node)
+
 
     #INIT_WRIST_PITCH = -1.57
     #global_parameters.INIT_WRIST_PITCH = -1.57
@@ -288,14 +269,6 @@ def run():
     #nav_socket.connect("tcp://172.24.71.253:5555")
     anygrasp_socket = context.socket(zmq.REQ)
     anygrasp_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port))
-    # args.manipulation_port = 5556
-    # anygrasp_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 0))
-    # anygrasp_open_socket = context.socket(zmq.REQ)
-    # anygrasp_open_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 1))
-    # topdown_socket = context.socket(zmq.REQ)
-    # topdown_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 2))
-    #topdown_socket.connect("tcp://" + "100.107.224.62" + ":" + str(args.manipulation_port + 2))
-    #manip_socket.connect("tcp://172.24.71.253:5556")
 
     while True:
         A = None
@@ -310,11 +283,6 @@ def run():
                 camera_xyz = hello_robot.robot.head.get_pose()[:3, 3]
                 INIT_HEAD_TILT = compute_tilt(camera_xyz, end_xyz)
 
-        #xyt = hello_robot.robot.nav.get_base_pose()
-        #xyt[2] = xyt[2] + np.pi / 2
-        #print('\n\n\n\n\n debug')
-        #time.sleep(5)
-        #navigate(hello_robot.robot, xyt)
         print('debug coordinates', hello_robot.robot.nav.get_base_pose())
         if input("You want to run manipulation? Y or N ") != 'N':
             if (A is None):
@@ -323,9 +291,7 @@ def run():
             hello_robot.robot.switch_to_manipulation_mode()
             hello_robot.robot.head.look_at_ee()
             run_manipulation(args, hello_robot, anygrasp_socket, A, transform_node, base_node)
-            #run_manipulation(args, hello_robot, anygrasp_open_socket, A, transform_node, base_node, move_range)
-            #run_manipulation(args, hello_robot, topdown_socket, A, transform_node, base_node, move_range, top_down = True)
-        
+
         # clear picking object
         A, B = None, None
         print('debug coordinates', hello_robot.robot.nav.get_base_pose())
@@ -340,9 +306,6 @@ def run():
                 camera_xyz = hello_robot.robot.head.get_pose()[:3, 3]
                 INIT_HEAD_TILT = compute_tilt(camera_xyz, end_xyz)
 
-            #xyt = hello_robot.robot.nav.get_base_pose()
-            #xyt[2] = xyt[2] + np.pi / 2
-            #navigate(hello_robot.robot, xyt)
         if input("You want to run place? Y or N") != 'N':
             if (A is None):
                 A, _ = read_input()

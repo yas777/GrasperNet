@@ -99,29 +99,9 @@ if __name__ == "__main__":
     args = get_args()
 
     # Initalize robot and move to a height of 0.86
-    if args.base_frame  == "gripper_camera":
-        base_node = CAMERA_NODE
-    elif args.base_frame == "top_camera":
-        base_node = TOP_CAMERA_NODE
-    elif args.base_frame == "gripper_fingertip_left":
-        base_node = GRIPPER_FINGERTIP_LEFT_NODE
-    elif args.base_frame == "gripper_fingertip_right":
-        base_node = GRIPPER_FINGERTIP_RIGHT_NODE
-
-    if args.transform_node == "gripper_fingertip_left":
-        transform_node = GRIPPER_FINGERTIP_LEFT_NODE
-    elif args.transform_node == "gripper_fingertip_right":
-        transform_node = GRIPPER_FINGERTIP_RIGHT_NODE
-    elif args.transform_node == "gripper_left":
-        transform_node = GRIPPER_FINGER_LEFT_NODE
-    elif args.transform_node == "gripper_mid":
-        transform_node = GRIPPER_MID_NODE
-
-    
-    if (args.transform):
-        hello_robot = HelloRobot(end_link=transform_node)
-    else:
-        hello_robot = HelloRobot(end_link=base_node)
+    base_node = TOP_CAMERA_NODE
+    transform_node = GRIPPER_MID_NODE
+    hello_robot = HelloRobot(end_link=transform_node)
     
     if args.mode == "pick":
         gripper_pos = 1
@@ -130,10 +110,6 @@ if __name__ == "__main__":
 
     if args.mode == "capture" or args.mode == "pick" or args.mode == "place":
         global_parameters.INIT_WRIST_PITCH = -1.57
-
-    # Joint state publisher
-    # pub_proc = Process(target = publisher_process, args=(hello_robot, ))
-    # pub_proc.start()
 
     try:
         rospy.init_node('hello_robot_node')
@@ -155,14 +131,7 @@ if __name__ == "__main__":
                                 wrist_roll = INIT_WRIST_ROLL,
                                 wrist_yaw = INIT_WRIST_YAW)
     time.sleep(1)
-
-    # transform, _, _ = hello_robot.get_joint_transform("base_link", GRIPPER_MID_NODE)
-    # print(transform)
-    # exit()
-    # Intialsiing Camera
-    #if args.mode == "move" or args.mode == "capture":
-    # camera = RealSenseCamera()
-
+    
     camera = RealSenseCamera(hello_robot.robot)
 
     context = zmq.Context()

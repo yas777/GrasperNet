@@ -8,7 +8,6 @@ def move_to_point(robot, point, base_node, gripper_node, move_mode=1, pitch_rota
     dest_frame = PyKDL.Frame(rotation, point)
     transform, _, _ = robot.get_joint_transform(base_node, gripper_node)
 
-    print('dest_frame', dest_frame.p)
     # Rotation from gripper frame frame to gripper frame
     transformed_frame = transform * dest_frame
 
@@ -17,7 +16,6 @@ def move_to_point(robot, point, base_node, gripper_node, move_mode=1, pitch_rota
     robot.move_to_pose(
             [transformed_frame.p[0], transformed_frame.p[1], transformed_frame.p[2]],
             [pitch_rotation, 0, 0],
-            # [-transformed_frame.M.GetRPY()[1], transformed_frame.M.GetRPY()[0], transformed_frame.M.GetRPY()[2]+1.53],
             [1],
             move_mode=move_mode
         )
@@ -72,7 +70,6 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
 
     # final Rotation of gripper to hold the objet
     final_rotation = transformed_frame.M * rotation2_top
-
     print(f"final rotation - {final_rotation.GetRPY()}")
     robot.move_to_pose(
             [0, 0, 0],
@@ -86,27 +83,23 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
 
     transformed_point1 = cam2gripper_transform * point
     base_point = cam2base_transform * point
-    # print(f"transform1 {cam2gripper_transform}")
     print(f"transformed point1 - {transformed_point1}")
 
     diff_value = (0.228 - gripper_depth - gripper_height)
     transformed_point1[2] -= (diff_value)
     ref_diff = (diff_value)
 
-    # Moving gripper to pose center 
+    # Moving gripper to a point that is 0.2m away from the pose center in the line of gripper
     robot.move_to_pose(
         [transformed_point1.x(), transformed_point1.y(), transformed_point1.z() - 0.2],
         [0, 0, 0],
-        # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
         [1],
         move_mode = 1
     )
     time.sleep(4)
 
-    # transform, frame2, frame1 = robot.get_joint_transform(base_node, gripper_node)
     base2gripper_transform, _, _ = robot.get_joint_transform('base_link', gripper_node)
     transformed_point2 = base2gripper_transform * base_point
-    # print(f"transform 2 {transform}")
     print(f"transformed point2 : {transformed_point2}")
     curr_diff = transformed_point2.z()
 
@@ -119,13 +112,10 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
         robot.move_to_pose(
             [0, 0, dist],
             [0, 0, 0],
-            # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
             [1]
         )
         time.sleep(2)
-        # transform, frame2, frame1 = robot.get_joint_transform(base_node, gripper_node)
         base2gripper_transform, _, _ = robot.get_joint_transform('base_link', gripper_node)
-        # print(f"transformed point3 : {transform * point}")
         print(f"transformed point3 : {base2gripper_transform * base_point}")
         diff = diff - dist
         
@@ -134,14 +124,11 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
         robot.move_to_pose(
             [0, 0, dist],   
             [0, 0, 0],
-            # [rotation.GetRPY()[0], rotation.GetRPY()[1], rotation.GetRPY()[2]],
             [1],
             velocities=velocities
         )
         time.sleep(2)
-        # transform, frame2, frame1 = robot.get_joint_transform(base_node, gripper_node)
         base2gripper_transform, _, _ = robot.get_joint_transform('base_link', gripper_node)
-        # print(f"transformed point3 : {transform * point}")
         print(f"transformed point3 : {base2gripper_transform * base_point}")
         diff = diff - dist
     
