@@ -134,10 +134,6 @@ def run_navigation(robot, socket, A, B):
     start_xy[0], start_xy[1] = transformed_start_xy[0], transformed_start_xy[1]
     start_xy[2] += THETA_OFFSET
     print(start_xy)
-    # A = str(input("Enter A: "))
-    # print("A = ", A)
-    # B = str(input("Enter B: "))
-    # print("B = ", B)
     send_array(socket, start_xy)
     print(socket.recv_string())
     socket.send_string(A)
@@ -154,8 +150,8 @@ def run_navigation(robot, socket, A, B):
     end_xyz = (n2r_matrix @ np.array([end_xyz[0], end_xyz[1], 1]))
     end_xyz[2] = z
 
-    if input("Start navigation? Y or N ") == 'N':
-        return None
+    #if input("Start navigation? Y or N ") == 'N':
+    #    return None
     
     # Let the robot run faster
     robot.nav.set_velocity(v = 25, w = 20)
@@ -210,8 +206,8 @@ def run_manipulation(args, hello_robot, socket, text, transform_node, base_node,
     rotation, translation, depth = capture_and_process_image(camera, args, socket, hello_robot, INIT_HEAD_TILT, top_down = top_down)
     
     #print("coordinates - ", print(hello_robot.robot.nav.get_base_pose()))
-    if input('Do you want to do this manipulation? Y or N ') != 'N':
-        pickup(hello_robot, rotation, translation, base_node, transform_node, top_down = top_down, gripper_depth = depth)
+    #if input('Do you want to do this manipulation? Y or N ') != 'N':
+    pickup(hello_robot, rotation, translation, base_node, transform_node, top_down = top_down, gripper_depth = depth)
     
     #print("coordinates - ", print(hello_robot.robot.nav.get_base_pose()))
     # Shift back to the original point
@@ -305,13 +301,18 @@ def run():
     anygrasp_open_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 1))
     topdown_socket = context.socket(zmq.REQ)
     topdown_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 2))
-    #topdown_socket.connect("tcp://" + "100.107.224.62" + ":" + str(args.manipulation_port + 2))
-    #manip_socket.connect("tcp://172.24.71.253:5556")
+
 
     while True:
-        A = None
-        if input("You want to run navigation? Y or N") != "N":
-            A, B = read_input()
+
+        print("Pick object")
+        A, B = read_input()
+        print("Place location")
+        C, D = read_input()
+
+        #if input("You want to run navigation? Y or N") != "N":
+        if True:
+            # A, B = read_input()
 
             hello_robot.robot.switch_to_navigation_mode()
             hello_robot.robot.move_to_post_nav_posture()
@@ -327,20 +328,20 @@ def run():
         #time.sleep(5)
         #navigate(hello_robot.robot, xyt)
         print('debug coordinates', hello_robot.robot.nav.get_base_pose())
-        if input("You want to run manipulation? Y or N ") != 'N':
-            if (A is None):
-                A, _ = read_input()
+        # if input("You want to run manipulation? Y or N ") != 'N':
+        if True:
+            #if (A is None):
+            #    A, _ = read_input()
         
             hello_robot.robot.switch_to_manipulation_mode()
             hello_robot.robot.head.look_at_ee()
             run_manipulation(args, hello_robot, anygrasp_socket, A, transform_node, base_node)
-            #run_manipulation(args, hello_robot, anygrasp_open_socket, A, transform_node, base_node, move_range)
-            #run_manipulation(args, hello_robot, topdown_socket, A, transform_node, base_node, move_range, top_down = True)
         
         
         print('debug coordinates', hello_robot.robot.nav.get_base_pose())
-        if input("You want to run navigation? Y or N") != "N":
-            A, B = read_input()
+        # if input("You want to run navigation? Y or N") != "N":
+        if True:
+            A, B = C, D  # read_input()
 
             hello_robot.robot.switch_to_navigation_mode()
             # hello_robot.robot.move_to_post_nav_posture()
@@ -353,9 +354,10 @@ def run():
             #xyt = hello_robot.robot.nav.get_base_pose()
             #xyt[2] = xyt[2] + np.pi / 2
             #navigate(hello_robot.robot, xyt)
-        if input("You want to run place? Y or N") != 'N':
-            if (A is None):
-                A, _ = read_input()
+        #if input("You want to run place? Y or N") != 'N':
+        if True:
+            #if (A is None):
+            #    A, _ = read_input()
             hello_robot.robot.switch_to_manipulation_mode()
             # hello_robot.robot.move_to_manip_posture()
             hello_robot.robot.head.look_at_ee()

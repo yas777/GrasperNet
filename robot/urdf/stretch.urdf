@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<robot name="stretch_description" version="1.0">
+<robot name="stretch" version="1.0">
   <link name="link_wrist_yaw_bottom">
     <inertial>
       <origin xyz="-0.012462 -0.032314 -0.021973" rpy="0.0 0.0 0.0"/>
@@ -365,7 +365,7 @@
     </collision>
   </link>
   <joint name="joint_mast" type="fixed">
-    <origin xyz="-0.0724940356922689 0.1396132937867568 0.021697509564934978" rpy="1.5742152551827593 0.023130319841277114 0.033874711475578384"/>
+    <origin xyz="-0.07198330012654981 0.13523123076717533 0.022499411208387422" rpy="1.5697469575590208 0.0014651016685551799 0.024884147606998232"/>
     <axis xyz="0.0 0.0 0.0"/>
     <parent link="fake_link_x"/>
     <child link="link_mast"/>
@@ -422,7 +422,7 @@
     </collision>
   </link>
   <joint name="joint_arm_l4" type="fixed">
-    <origin xyz="-0.25346046622553026 -0.0006888955385321449 -0.009067467536432347" rpy="1.5723623435010765 0.02018571874175068 -1.5695989194351543"/>
+    <origin xyz="-0.2551902995196521 -0.004587477527919949 -0.0067835018335551" rpy="1.5947532545223841 0.04310809856221964 -1.5634231107732015"/>
     <axis xyz="0.0 0.0 0.0"/>
     <parent link="link_lift"/>
     <child link="link_arm_l4"/>
@@ -623,7 +623,7 @@
     </collision>
   </link>
   <joint name="joint_head_pan" type="revolute">
-    <origin xyz="0.12653591644065892 0.06996300447388382 -0.007502567186114471" rpy="-0.013482085643258484 0.008351178824350214 1.5828756850605683"/>
+    <origin xyz="0.13453874536738517 0.07312635667870605 -0.011180608315312722" rpy="-0.0030738562300043934 0.0073597460057950315 1.5950287113810948"/>
     <axis xyz="0.0 0.0 1.0"/>
     <parent link="link_head"/>
     <child link="link_head_pan"/>
@@ -652,7 +652,7 @@
     </collision>
   </link>
   <joint name="joint_head_tilt" type="revolute">
-    <origin xyz="-0.010551572466977533 0.03117939300009126 -0.05286298183491632" rpy="1.6180532800825063 -0.03979025166173167 0.0358699222168261"/>
+    <origin xyz="-0.004901621230908064 0.03035253842258606 -0.04865203443747947" rpy="1.6195958295464712 0.005886338648440459 0.060555244385694935"/>
     <axis xyz="0.0 0.0 1.0"/>
     <parent link="link_head_pan"/>
     <child link="link_head_tilt"/>
@@ -805,7 +805,7 @@
     <color rgba="0.1 0.1 0.1 1.0"/>
   </material>
   <joint name="camera_joint" type="fixed">
-    <origin xyz="0.02619219623036331 -0.00907998840588666 0.017504180222345376" rpy="0.024000002807284544 -0.008300456177192217 -0.05827310651731734"/>
+    <origin xyz="0.02607886806949255 -0.009314618418488976 0.01895352363443432" rpy="0.023237650152550023 -0.007836420162175894 -0.03265182473345039"/>
     <parent link="link_head_tilt"/>
     <child link="camera_bottom_screw_frame"/>
   </joint>
@@ -934,6 +934,34 @@
     <parent link="base_link"/>
     <child link="laser"/>
   </joint>
+  <link name="base_imu">
+    <inertial>
+      <origin xyz="0.00300349280517617 0.00149777182047641 -0.00193103885249443" rpy="0.0 0.0 0.0"/>
+      <mass value="0.00092"/>
+      <inertia ixx="3e-08" ixy="0.0" ixz="0.0" iyy="5e-08" iyz="0.0" izz="8e-08"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/base_imu.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.0 0.772549019607843 0.207843137254902 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/base_imu.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_base_imu" type="fixed">
+    <origin xyz="-0.12838 0.0031592 0.1474" rpy="-3.1416 0.0 -1.5708"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="base_link"/>
+    <child link="base_imu"/>
+  </joint>
   <link name="respeaker_base">
     <inertial>
       <origin xyz="-0.001594 -0.001282 -0.008098" rpy="0.0 0.0 0.0"/>
@@ -962,7 +990,7 @@
     <parent link="link_mast"/>
     <child link="respeaker_base"/>
   </joint>
-<link name="fake_link_x">
+	  <link name="fake_link_x">
     <inertial>
       <origin rpy="0.0 0.0 0." xyz="0. 0. 0."/>
       <mass value="0.749143203376"/>

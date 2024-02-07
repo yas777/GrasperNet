@@ -90,6 +90,8 @@ def pickup(robot, rotation, translation, base_node, gripper_node, gripper_height
     print(f"transformed point1 - {transformed_point1}")
 
     diff_value = (0.228 - gripper_depth - gripper_height)
+    transformed_point1[0] += 0.05
+    transformed_point1[1] -= 0.02
     transformed_point1[2] -= (diff_value)
     ref_diff = (diff_value)
 
