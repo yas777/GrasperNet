@@ -305,13 +305,16 @@ def run():
 
     while True:
 
+        """
         print("Pick object")
         A, B = read_input()
         print("Place location")
         C, D = read_input()
+        """
+        A, B  = "green water bottle", None
 
         #if input("You want to run navigation? Y or N") != "N":
-        if True:
+        if False:
             # A, B = read_input()
 
             hello_robot.robot.switch_to_navigation_mode()
@@ -337,6 +340,7 @@ def run():
             hello_robot.robot.head.look_at_ee()
             run_manipulation(args, hello_robot, anygrasp_socket, A, transform_node, base_node)
         
+        break
         
         print('debug coordinates', hello_robot.robot.nav.get_base_pose())
         # if input("You want to run navigation? Y or N") != "N":

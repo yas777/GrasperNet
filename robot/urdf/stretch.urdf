@@ -990,7 +990,7 @@
     <parent link="link_mast"/>
     <child link="respeaker_base"/>
   </joint>
-	  <link name="fake_link_x">
+  <link name="fake_link_x">
     <inertial>
       <origin rpy="0.0 0.0 0." xyz="0. 0. 0."/>
       <mass value="0.749143203376"/>
