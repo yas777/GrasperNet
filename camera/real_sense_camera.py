@@ -18,7 +18,6 @@ import matplotlib.pyplot as plt
 
 class RealSenseCamera:
     def __init__(self, robot):
-        
         self.robot = robot
         self.depth_scale = 0.001
 
@@ -33,9 +32,7 @@ class RealSenseCamera:
         # selected ix and iy co-ordinates
         self.ix, self.iy = None, None
 
-    def capture_image(self):
-
-        # Streaming loop
+    def capture_image(self, visualize=False):
         self.rgb_image, self.depth_image, self.points = self.robot.head.get_images(compute_xyz=True)
         #TODO: This is actually unecessary, we are rotating the images to make sure we can make 
         # minimal changes to our older versions of codes
@@ -46,34 +43,25 @@ class RealSenseCamera:
         cv2.imwrite("./images/input.jpg", np.rot90(self.rgb_image, k=-1))
         # cv2.imwrite("depth.jpg", np.rot90(self.depth_image, k=-1)/np.max(self.depth_image))
         self.rgb_image = cv2.cvtColor(self.rgb_image, cv2.COLOR_BGR2RGB)
-        # np.save("rgb.npy", self.rgb_image)
-        # np.save("depth.npy", self.depth_image)
-        # np.save("points.npy", self.points)
         
-        fig, ax = plt.subplots(1, 2, figsize=(10,5))
-        timer = fig.canvas.new_timer(interval = 5000) #creating a timer object and setting an interval of 3000 milliseconds
-        timer.add_callback(lambda : plt.close())
+        if visualize:
+            fig, ax = plt.subplots(1, 2, figsize=(10,5))
+            timer = fig.canvas.new_timer(interval = 5000) #creating a timer object and setting an interval of 3000 milliseconds
+            timer.add_callback(lambda : plt.close())
 
-        ax[0].imshow(np.rot90(self.rgb_image, k=-1))
-        ax[0].set_title("Color Image")
+            ax[0].imshow(np.rot90(self.rgb_image, k=-1))
+            ax[0].set_title("Color Image")
 
-        ax[1].imshow(np.rot90(self.depth_image, k=-1))
-        ax[1].set_title("Depth Image")
-            
-        plt.savefig("./images/rgb_dpt.png")
-        plt.pause(3)
-        plt.close()
+            ax[1].imshow(np.rot90(self.depth_image, k=-1))
+            ax[1].set_title("Depth Image")
+                
+            plt.savefig("./images/rgb_dpt.png")
+            plt.pause(3)
+            plt.close()
         
         return self.rgb_image, self.depth_image, self.points
 
     def pixel2d_to_point3d(self, ix, iy):
-        # d = self.depth_image[iy, ix]
-        # print(d, ix, iy, self.cx, self.cy, self.fx, self.fy)
-        # z = d
-        # x = (ix - self.cx)*(abs(z))/self.fx
-        # y = -(iy - self.cy)*(abs(z))/self.fy
-
-        # return x, y, z
         return self.points[iy, ix][[1, 0, 2]]
 
     def click_event(self, event, x, y, flags, param):
