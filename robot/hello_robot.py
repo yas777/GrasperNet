@@ -218,20 +218,20 @@ class HelloRobot:
             target1 = [0 for _ in range(6)]
             target1[1] = target_state[1] - state[1]
             #self.robot.manip.goto_joint_positions(target1, velocities, relative=True)
-            self.robot.manip.goto_joint_positions(target1, relative=True, velocities=velocities)
+            self.robot.manip.goto_joint_positions(target1, relative=True)
             time.sleep(0.7)
 
         elif (mode == 2):
             # Moving base first
             target1 = [0 for _ in range(6)]
             target1[0] = target_state[0]
-            self.robot.manip.goto_joint_positions(target1, velocities=velocities)
+            self.robot.manip.goto_joint_positions(target1)
             time.sleep(0.7)
 
             # Then move lift
             target1 = [0 for _ in range(6)]
             target1[1] = target_state[1] - state[1]
-            self.robot.manip.goto_joint_positions(target1, relative=True, velocities=velocities)
+            self.robot.manip.goto_joint_positions(target1, relative=True)
             time.sleep(0.7)
 
         print(f"current state {state}")
