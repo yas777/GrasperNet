@@ -25,102 +25,15 @@ from multiprocessing import Process
 
 from utils.grasper_utils import pickup, move_to_point
 from grasper import capture_and_process_image
+from .openai_client import OpenaiClient
+from .run import load_offset, navigate, callback, send_array, recv_array
 
-
-#robot = StretchClient()
-#robot.switch_to_navigation_mode()
-#robot.move_to_nav_posture()
-#robot = stretch_body.robot.Robot()
-#robot.startup()
 
 POS_TOL = 0.1
 YAW_TOL = 0.2
 
 X_OFFSET, Y_OFFSET, THETA_OFFSET, r2n_matrix, n2r_matrix = None, None, None, None, None
 
-def load_offset(x1, y1, x2, y2):
-    global X_OFFSET, Y_OFFSET, THETA_OFFSET, r2n_matrix, n2r_matrix
-    X_OFFSET = x1
-    Y_OFFSET = y1
-    # x1 = X_OFFSET, x2 = another x
-    THETA_OFFSET =  np.arctan2((y2 - y1), (x2 - x1))
-
-    print(f"offsets - {X_OFFSET}, {Y_OFFSET}, {THETA_OFFSET}")
-    r2n_matrix = \
-        np.array([
-            [1, 0, X_OFFSET],
-            [0, 1, Y_OFFSET],
-            [0, 0, 1]
-        ]) @ \
-        np.array([
-            [np.cos(THETA_OFFSET), -np.sin(THETA_OFFSET), 0],
-            [np.sin(THETA_OFFSET), np.cos(THETA_OFFSET), 0],
-            [0, 0, 1]
-        ])
-
-    n2r_matrix = \
-        np.array([
-            [np.cos(THETA_OFFSET), np.sin(THETA_OFFSET), 0],
-            [-np.sin(THETA_OFFSET), np.cos(THETA_OFFSET), 0],
-            [0, 0, 1]
-        ]) @ \
-        np.array([
-            [1, 0, -X_OFFSET],
-            [0, 1, -Y_OFFSET],
-            [0, 0, 1]
-        ])
-
-def navigate(robot, xyt_goal):
-    xyt_goal = np.asarray(xyt_goal)
-    while xyt_goal[2] < -np.pi or xyt_goal[2] > np.pi:
-        xyt_goal[2] = xyt_goal[2] + 2 * np.pi if xyt_goal[2] < -np.pi else xyt_goal[2] - 2 * np.pi
-    while True:
-        robot.nav.navigate_to(xyt_goal, blocking = False)
-        xyt_curr = robot.nav.get_base_pose()
-        print("The robot currently loactes at " + str(xyt_curr))
-        #time.sleep(0.5)
-        if np.allclose(xyt_curr[:2], xyt_goal[:2], atol=POS_TOL) and \
-                (np.allclose(xyt_curr[2], xyt_goal[2], atol=YAW_TOL)\
-                 or np.allclose(xyt_curr[2], xyt_goal[2] + np.pi * 2, atol=YAW_TOL)\
-                 or np.allclose(xyt_curr[2], xyt_goal[2] - np.pi * 2, atol=YAW_TOL)):
-            print("The robot is finally at " + str(xyt_goal))
-            break
-
-def callback(data):
-    rospy.loginfo(rospy.get_caller_id() + 'I heard %s', data.data)
-    paths = data.data
-    i = 0
-    while i < len(paths):
-        x = -paths[i]
-        y = paths[i + 1]
-        navigate(robot, np.array([x, y, 0]))
-        i += 2
-
-def send_array(socket, A, flags=0, copy=True, track=False):
-    """send a numpy array with metadata"""
-    A = np.array(A)
-    md = dict(
-        dtype = str(A.dtype),
-        shape = A.shape,
-    )
-    socket.send_json(md, flags|zmq.SNDMORE)
-    return socket.send(np.ascontiguousarray(A), flags, copy=copy, track=track)
-
-# use zmq to receive a numpy array
-def recv_array(socket, flags=0, copy=True, track=False):
-    """recv a numpy array"""
-    md = socket.recv_json(flags=flags)
-    msg = socket.recv(flags=flags, copy=copy, track=track)
-    A = np.frombuffer(msg, dtype=md['dtype'])
-    return A.reshape(md['shape'])
-
-def read_input():
-    A = str(input("Enter A: "))
-    print("A = ", A)
-    B = str(input("Enter B: "))
-    print("B = ", B)
-
-    return A, B
 
 def run_navigation(robot, socket, A, B):
     # Reset robot
@@ -183,21 +96,16 @@ def run_navigation(robot, socket, A, B):
 def run_manipulation(args, hello_robot, socket, text, transform_node, base_node, move_range = [False, False], top_down = False):
     
     gripper_pos = 1
-
-    print(INIT_ARM_POS, INIT_WRIST_PITCH, INIT_WRIST_ROLL, INIT_WRIST_YAW, gripper_pos)
-    #print("coordinates - ", print(hello_robot.robot.nav.get_base_pose()))
     hello_robot.move_to_position(arm_pos=INIT_ARM_POS,
                                 head_pan=INIT_HEAD_PAN,
                                 head_tilt=INIT_HEAD_TILT,
                                 gripper_pos = gripper_pos)
     time.sleep(1)
-    #print("coordinates - ", print(hello_robot.robot.nav.get_base_pose()))
     hello_robot.move_to_position(lift_pos=INIT_LIFT_POS,
                                 wrist_pitch = global_parameters.INIT_WRIST_PITCH,
                                 wrist_roll = INIT_WRIST_ROLL,
                                 wrist_yaw = INIT_WRIST_YAW)
     time.sleep(2)
-    #print("coordinates - ", print(hello_robot.robot.nav.get_base_pose()))
 
     camera = RealSenseCamera(hello_robot.robot)
 
@@ -205,15 +113,14 @@ def run_manipulation(args, hello_robot, socket, text, transform_node, base_node,
     args.picking_object = text
     rotation, translation, depth = capture_and_process_image(camera, args, socket, hello_robot, INIT_HEAD_TILT, top_down = top_down)
     
-    #print("coordinates - ", print(hello_robot.robot.nav.get_base_pose()))
     #if input('Do you want to do this manipulation? Y or N ') != 'N':
     pickup(hello_robot, rotation, translation, base_node, transform_node, top_down = top_down, gripper_depth = depth)
     
-    #print("coordinates - ", print(hello_robot.robot.nav.get_base_pose()))
-    # Shift back to the original point
+    print("coordinates =", hello_robot.robot.nav.get_base_pose())
+
+    print("Shift back to the original point")
     hello_robot.move_to_position(base_trans = -hello_robot.robot.manip.get_joint_positions()[0])
-    
-    #print("coordinates - ", print(hello_robot.robot.nav.get_base_pose()))
+    print("coordinates =", hello_robot.robot.nav.get_base_pose())
 
 def run_place(args, hello_robot, socket, text, transform_node, base_node, move_range = [False, False], top_down = False):
 
@@ -224,20 +131,14 @@ def run_place(args, hello_robot, socket, text, transform_node, base_node, move_r
     time.sleep(2)
     print("Capture and process image")
     rotation, translation, _ = capture_and_process_image(camera, args, socket, hello_robot, INIT_HEAD_TILT, top_down = top_down)
-    print(rotation)
+    print(f"{rotation=}")
     hello_robot.move_to_position(lift_pos=1.1)
     time.sleep(1)
     hello_robot.move_to_position(wrist_yaw=0,
                                  wrist_pitch=0)
     time.sleep(1)
-    # hello_robot.move_to_position(wrist_yaw=0)
-    #hello_robot.move_to_position(lift_pos=1.1)
-    # hello_robot.move_to_position(wrist_pitch=0)
     time.sleep(1)
     move_to_point(hello_robot, translation, base_node, transform_node, move_mode=0)
-    #move_to_point(hello_robot, translation, base_node, transform_node, move_mode=0)
-    #time.sleep(4)
-    #move_to_point(hello_robot, translation, base_node, transform_node, move_mode=0, pitch_rotation=-1.57)
     hello_robot.move_to_position(gripper_pos=1)
     hello_robot.move_to_position(lift_pos = hello_robot.robot.manip.get_joint_positions()[1] + 0.2)
     hello_robot.move_to_position(wrist_roll = 3)
@@ -248,11 +149,6 @@ def run_place(args, hello_robot, socket, text, transform_node, base_node, move_r
                                 lift_pos = 1.1,
                                 arm_pos = 0)
     time.sleep(4)
-    #hello_robot.move_to_position(wrist_pitch=-1.57, arm_pos = 0)
-    #if abs(robot.robot.manip.get_joint_positions()[3] - 2.5) > 0.1:
-    #    hello_robot.move_to_position(wrist_yaw  = - 2.5)
-    # hello_robot.move_to_position(lift_pos=1.1)
-    # hello_robot.move_to_position(arm_pos=0)
     hello_robot.move_to_position(wrist_pitch=-1.57)
     time.sleep(1)
     hello_robot.move_to_position(base_trans = -hello_robot.robot.manip.get_joint_positions()[0])
@@ -304,31 +200,37 @@ def run():
     topdown_socket.connect("tcp://" + args.ip + ":" + str(args.manipulation_port + 2))
 
 
+    client = None
+    debug = True
     i = 0
+
     while True:
 
-        """
-        print("Pick object")
-        A, B = read_input()
-        print("Place location")
-        C, D = read_input()
-        """
-        if i == 0:
-            A, B = "blue mug", ""
-            C, D = "sink", ""
-        elif i == 1:
-            A, B = "green bottle", ""
-            C, D = "sink", ""
-        elif i == 2:
-            A, B  = "green cup", ""
-            # A, B = "blue mug", ""
-            C, D = "sink", ""
+        if debug:
+            # print("Pick object")
+            # A, B = read_input()
+            # print("Place location")
+            # C, D = read_input()
+            if i == 0:
+                A, B = "blue mug", ""
+                C, D = "sink", ""
+            elif i == 1:
+                A, B = "green bottle", ""
+                C, D = "sink", ""
+            elif i == 2:
+                A, B  = "green cup", ""
+                # A, B = "blue mug", ""
+                C, D = "sink", ""
 
-        # Another case
-        # i = 2
-        # A, B  = "green and white plush cactus", "table"
-        # A, B = "cactus plushie", "table"
-        # C, D = "baby mobile and carrier", ""
+            # Another case
+            # i = 2
+            # A, B  = "green and white plush cactus", "table"
+            # A, B = "cactus plushie", "table"
+            # C, D = "baby mobile and carrier", ""
+        else:
+            if client is None:
+                # Creating openai client for demos
+                client = OpenaiClient(use_specific_objects=False)
 
         #if input("You want to run navigation? Y or N") != "N":
         if True:
