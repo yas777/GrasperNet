@@ -30,35 +30,47 @@ Example 1:
 Command: "get rid of that dirty towel"
 Returns:
 pick=towel
+pick_loc=
 place=basket
+place_loc=
 
 Example 2:
-Command: "put the cup in the sink"
+Command: "put the cup from the chair in the sink"
 Returns:
 pick=cup
+pick_loc=chair
 place=sink
+place_loc=
 
 Example 3:
 Command: "i need the yellow shampoo bottle, can you put it by the shower?"
 Returns:
 pick=yellow bottle
+pick_loc=
 place=bathroom counter
+place_loc=
 
 Example 4:
 Command: "i could really use a sugary drink, i'm going to go lie down"
 Returns:
 pick=fanta can
+pick_loc=
 place=gray bed
+place_loc=
 
 Example 5:
-Command: "put the apple and orange on the kitchen table."
+Command: "put the apple and orange from the basket on the kitchen table."
 Returns:
 pick=apple
+pick_loc=basket
 place=kitchen table
+place_loc=
 pick=orange
+pick_loc=basket
 place=kitchen table
+place_loc=
 
-You will respond ONLY with the executable commands, i.e. the part following "Returns." Do not include the word Returns. Objects must be specific. The term on the left side of the equals sign must be either pick or place.
+You will respond ONLY with the executable commands, i.e. the part following "Returns." Do not include the word Returns. Objects must be specific. The term on the left side of the equals sign must be either pick, place, pick_loc, or place_loc.
 """
 
 
