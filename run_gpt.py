@@ -25,7 +25,7 @@ from multiprocessing import Process
 
 from utils.grasper_utils import pickup, move_to_point
 from grasper import capture_and_process_image
-from .openai_client import OpenaiClient
+from openai_client import OpenaiClient
 from .run import load_offset, navigate, callback, send_array, recv_array
 
 
@@ -212,13 +212,13 @@ def run():
             # print("Place location")
             # C, D = read_input()
             if i == 0:
-                A, B = "blue mug", ""
-                C, D = "sink", ""
-            elif i == 1:
                 A, B = "green bottle", ""
                 C, D = "sink", ""
-            elif i == 2:
+            elif i == 1:
                 A, B  = "green cup", ""
+                C, D = "sink", ""
+            elif i == 2:
+                A, B = "blue mug", ""
                 # A, B = "blue mug", ""
                 C, D = "sink", ""
 
