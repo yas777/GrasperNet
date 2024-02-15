@@ -33,7 +33,7 @@ from grasper import capture_and_process_image
 #robot = stretch_body.robot.Robot()
 #robot.startup()
 
-POS_TOL = 0.1
+POS_TOL = 0.15
 YAW_TOL = 0.2
 
 X_OFFSET, Y_OFFSET, THETA_OFFSET, r2n_matrix, n2r_matrix = None, None, None, None, None
@@ -77,7 +77,7 @@ def navigate(robot, xyt_goal):
     while True:
         robot.nav.navigate_to(xyt_goal, blocking = False)
         xyt_curr = robot.nav.get_base_pose()
-        print("The robot currently loactes at " + str(xyt_curr))
+        print("The robot os currently located at " + str(xyt_curr))
         #time.sleep(0.5)
         if np.allclose(xyt_curr[:2], xyt_goal[:2], atol=POS_TOL) and \
                 (np.allclose(xyt_curr[2], xyt_goal[2], atol=YAW_TOL)\
