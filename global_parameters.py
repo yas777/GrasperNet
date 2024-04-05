@@ -17,7 +17,7 @@ INIT_HEAD_TILT = -0.65
 
 ## x, y, z corrections to final goal_pose_new co-ordinates
 CORRECTION_X = 0.0 # (infra2) #  0.05(color) # 0.1 # 
-CORRECTION_Y = -0.0 # 0.02 # -0.03 # +0.05 for np and 0.0 fot tdp
+CORRECTION_Y = 0.0 # 0.02 # -0.03 # +0.05 for np and 0.0 fot tdp
 CORRECTION_Z = 0 # -0.05 # 0.025
 
 # Segmentation variables
